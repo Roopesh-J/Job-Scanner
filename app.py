@@ -10,13 +10,14 @@ import json
 import os
 from datetime import datetime
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, session
 from pipeline import ingest, capture, validate, repair, analyze, validate_analysis, repair_analysis
 
 app = Flask(__name__)
+app.secret_key = "jie-local-session-key"
 
 
-def run_pipeline(raw_jd: str) -> tuple:
+def run_pipeline(raw_jd: str, profile: str = "") -> tuple:
     """Run the full pipeline. Returns (capture_parsed, analysis_parsed, error)."""
     run_id = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
 
@@ -37,7 +38,7 @@ def run_pipeline(raw_jd: str) -> tuple:
     with open(f"outputs/{run_id}_capture.json", "w") as f:
         json.dump(validated, f, indent=2)
 
-    analysis_artifact = analyze(validated, jd_text)
+    analysis_artifact = analyze(validated, jd_text, profile=profile or None)
     analysis_artifact = validate_analysis(analysis_artifact)
 
     if not analysis_artifact["valid"]:
@@ -59,15 +60,24 @@ def index():
     analysis = None
     error = None
 
+    # Load saved profile from session
+    profile = session.get("profile", "")
+
     if request.method == "POST":
         jd_text = request.form.get("jd_text", "").strip()
+        profile = request.form.get("profile", "").strip()
+
+        # Persist profile in session
+        session["profile"] = profile
+
         if jd_text:
-            capture_data, analysis, error = run_pipeline(jd_text)
+            capture_data, analysis, error = run_pipeline(jd_text, profile)
         else:
             error = "Please paste a job description."
 
     return render_template("index.html",
                            jd_text=jd_text,
+                           profile=profile,
                            capture=capture_data,
                            analysis=analysis,
                            error=error)

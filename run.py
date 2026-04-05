@@ -93,16 +93,31 @@ def print_analysis(analysis: dict):
     for point in parsed.get("what_to_emphasize", []):
         print(f"  • {point}")
 
+    if parsed.get("fit_summary"):
+        print("\nFIT ASSESSMENT")
+        print(f"  {parsed['fit_summary']}")
+
+    if parsed.get("strengths"):
+        print("\nYOUR STRENGTHS")
+        for s in parsed["strengths"]:
+            print(f"  + {s}")
+
+    if parsed.get("gaps"):
+        print("\nGAPS TO ADDRESS")
+        for g in parsed["gaps"]:
+            print(f"  - {g}")
+
     print("\n" + "="*60)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Job Intelligence Engine")
     parser.add_argument("--file", type=str, help="Path to a .txt file with the job description")
+    parser.add_argument("--profile", type=str, help="Path to a .txt file with your resume/background")
     args = parser.parse_args()
 
     run_id = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    print(f"\n🚀 JIE run started — {run_id}\n")
+    print(f"\nJIE run started — {run_id}\n")
 
     # Stage 1: Ingest (in memory only)
     print("[1/4] Ingesting...")
@@ -116,6 +131,13 @@ def main():
         raw = JD_TEXT
     jd_text = ingest(raw)
     print(f"  ✓ {len(jd_text)} chars")
+
+    # Load optional profile
+    profile = None
+    if args.profile:
+        with open(args.profile, "r") as f:
+            profile = f.read()
+        print(f"  ✓ profile loaded ({len(profile)} chars)")
 
     # Stage 2: Capture
     print("\n[2/4] Capturing...")
@@ -137,7 +159,7 @@ def main():
 
     # Stage 4: Analyze
     print("\n[4/4] Analyzing...")
-    analysis_artifact = analyze(validated, jd_text)
+    analysis_artifact = analyze(validated, jd_text, profile=profile)
     analysis_artifact = validate_analysis(analysis_artifact)
     if not analysis_artifact["valid"]:
         analysis_artifact = repair_analysis(analysis_artifact)
