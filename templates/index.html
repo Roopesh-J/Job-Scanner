@@ -27,7 +27,7 @@
 
     main { max-width: 980px; margin: 2rem auto; padding: 0 1.5rem 4rem; }
 
-    /* Input */
+    /* Input form */
     .input-card {
       background: white;
       border-radius: 10px;
@@ -35,9 +35,23 @@
       box-shadow: 0 1px 4px rgba(0,0,0,0.08);
       margin-bottom: 1.75rem;
     }
+    .input-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .input-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: #9ca3af;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+    .input-label span { color: #d1d5db; font-weight: 400; text-transform: none; letter-spacing: 0; }
     textarea {
       width: 100%;
-      height: 180px;
+      height: 160px;
       border: 1px solid #e5e7eb;
       border-radius: 6px;
       padding: 0.75rem;
@@ -117,6 +131,9 @@
       margin-bottom: 0.85rem;
     }
 
+    /* Personalized card accent */
+    .card-personalized { border-left: 3px solid #6366f1; }
+
     /* Two column layout */
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
@@ -136,6 +153,8 @@
     }
     .item-list li:last-child { border-bottom: none; }
     .dot { color: #6366f1; font-weight: bold; flex-shrink: 0; }
+    .dot-green { color: #16a34a; font-weight: bold; flex-shrink: 0; }
+    .dot-red { color: #dc2626; font-weight: bold; flex-shrink: 0; }
     .item-text { flex: 1; }
     .badges { display: flex; gap: 0.25rem; flex-wrap: wrap; margin-left: auto; flex-shrink: 0; }
     .badge {
@@ -180,6 +199,7 @@
 
     @media (max-width: 640px) {
       .two-col { grid-template-columns: 1fr; }
+      .input-grid { grid-template-columns: 1fr; }
       .meta-bar { gap: 1.25rem; }
     }
   </style>
@@ -195,7 +215,16 @@
 
   <div class="input-card">
     <form method="POST" onsubmit="this.querySelector('.status').style.display='inline'; this.querySelector('button').disabled=true;">
-      <textarea name="jd_text" placeholder="Paste the full job description here...">{{ jd_text }}</textarea>
+      <div class="input-grid">
+        <div>
+          <div class="input-label">Job Description</div>
+          <textarea name="jd_text" placeholder="Paste the full job description here...">{{ jd_text }}</textarea>
+        </div>
+        <div>
+          <div class="input-label">Your Profile <span>— optional, personalizes the analysis</span></div>
+          <textarea name="profile" placeholder="Paste your resume or a summary of your background, skills, and experience...">{{ profile }}</textarea>
+        </div>
+      </div>
       <div class="form-row">
         <button type="submit">Analyze</button>
         <span class="status">Running pipeline, please wait...</span>
@@ -216,6 +245,32 @@
       <div class="meta-item"><strong>Location</strong><span>{{ capture.meta.location or '—' }}</span></div>
       <div class="meta-item"><strong>Remote Policy</strong><span>{{ capture.meta.remote_policy or '—' }}</span></div>
       <div class="meta-item"><strong>Level</strong><span>{{ capture.meta.role_level or '—' }}</span></div>
+    </div>
+    {% endif %}
+
+    {% if analysis.fit_summary %}
+    <div class="card card-personalized">
+      <h2>Fit Assessment</h2>
+      <p class="summary-text">{{ analysis.fit_summary }}</p>
+    </div>
+
+    <div class="two-col">
+      <div class="card card-personalized">
+        <h2>Your Strengths for This Role</h2>
+        <ul class="item-list">
+          {% for s in analysis.strengths %}
+          <li><span class="dot-green">+</span><span class="item-text">{{ s }}</span></li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="card card-personalized">
+        <h2>Gaps to Address</h2>
+        <ul class="item-list">
+          {% for g in analysis.gaps %}
+          <li><span class="dot-red">–</span><span class="item-text">{{ g }}</span></li>
+          {% endfor %}
+        </ul>
+      </div>
     </div>
     {% endif %}
 
