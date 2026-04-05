@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Intelligence Engine</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f4f5f7;
+      color: #1a1a1a;
+      line-height: 1.6;
+    }
+
+    header {
+      background: #111827;
+      color: white;
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+    }
+    header h1 { font-size: 1.15rem; font-weight: 600; letter-spacing: 0.3px; }
+    header p { font-size: 0.8rem; color: #9ca3af; }
+
+    main { max-width: 980px; margin: 2rem auto; padding: 0 1.5rem 4rem; }
+
+    /* Input */
+    .input-card {
+      background: white;
+      border-radius: 10px;
+      padding: 1.25rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      margin-bottom: 1.75rem;
+    }
+    textarea {
+      width: 100%;
+      height: 180px;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 0.75rem;
+      font-family: inherit;
+      font-size: 0.875rem;
+      resize: vertical;
+      outline: none;
+      color: #374151;
+    }
+    textarea:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+    .form-row {
+      margin-top: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    button[type="submit"] {
+      background: #6366f1;
+      color: white;
+      border: none;
+      padding: 0.55rem 1.4rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button[type="submit"]:hover { background: #4f46e5; }
+    .status { font-size: 0.8rem; color: #9ca3af; display: none; }
+
+    /* Error */
+    .error-box {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #b91c1c;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.875rem;
+    }
+
+    /* Meta bar */
+    .meta-bar {
+      background: #111827;
+      color: white;
+      border-radius: 10px;
+      padding: 1rem 1.5rem;
+      margin-bottom: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+    }
+    .meta-item strong {
+      display: block;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #9ca3af;
+      margin-bottom: 0.15rem;
+    }
+    .meta-item span { font-size: 0.875rem; }
+
+    /* Cards */
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .card h2 {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #9ca3af;
+      font-weight: 600;
+      margin-bottom: 0.85rem;
+    }
+
+    /* Two column layout */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    /* Summary */
+    .summary-text { font-size: 0.925rem; color: #374151; }
+
+    /* Item lists */
+    .item-list { list-style: none; }
+    .item-list li {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      padding: 0.4rem 0;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 0.875rem;
+      color: #374151;
+    }
+    .item-list li:last-child { border-bottom: none; }
+    .dot { color: #6366f1; font-weight: bold; flex-shrink: 0; }
+    .item-text { flex: 1; }
+    .badges { display: flex; gap: 0.25rem; flex-wrap: wrap; margin-left: auto; flex-shrink: 0; }
+    .badge {
+      background: #eef2ff;
+      color: #6366f1;
+      font-size: 0.65rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 3px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    /* Skill map */
+    .skill-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.25rem; }
+    .skill-group h3 {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #9ca3af;
+      margin-bottom: 0.5rem;
+    }
+    .skill-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+    .skill-tag {
+      background: #f0f4ff;
+      color: #4f46e5;
+      border: 1px solid #c7d2fe;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.775rem;
+    }
+
+    /* Interview topics */
+    .topic-item { padding: 0.6rem 0; border-bottom: 1px solid #f3f4f6; }
+    .topic-item:last-child { border-bottom: none; }
+    .topic-name {
+      font-weight: 500;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .topic-rationale { font-size: 0.825rem; color: #6b7280; margin-top: 0.2rem; padding-left: 1rem; }
+
+    @media (max-width: 640px) {
+      .two-col { grid-template-columns: 1fr; }
+      .meta-bar { gap: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Job Intelligence Engine</h1>
+  <p>Paste a job description to extract structured insights</p>
+</header>
+
+<main>
+
+  <div class="input-card">
+    <form method="POST" onsubmit="this.querySelector('.status').style.display='inline'; this.querySelector('button').disabled=true;">
+      <textarea name="jd_text" placeholder="Paste the full job description here...">{{ jd_text }}</textarea>
+      <div class="form-row">
+        <button type="submit">Analyze</button>
+        <span class="status">Running pipeline, please wait...</span>
+      </div>
+    </form>
+  </div>
+
+  {% if error %}
+  <div class="error-box">{{ error }}</div>
+  {% endif %}
+
+  {% if analysis %}
+
+    {% if capture %}
+    <div class="meta-bar">
+      <div class="meta-item"><strong>Title</strong><span>{{ capture.meta.title or '—' }}</span></div>
+      <div class="meta-item"><strong>Company</strong><span>{{ capture.meta.company or '—' }}</span></div>
+      <div class="meta-item"><strong>Location</strong><span>{{ capture.meta.location or '—' }}</span></div>
+      <div class="meta-item"><strong>Remote Policy</strong><span>{{ capture.meta.remote_policy or '—' }}</span></div>
+      <div class="meta-item"><strong>Level</strong><span>{{ capture.meta.role_level or '—' }}</span></div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <h2>Summary</h2>
+      <p class="summary-text">{{ analysis.summary }}</p>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <h2>Must-Haves</h2>
+        <ul class="item-list">
+          {% for item in analysis.must_haves %}
+          <li>
+            <span class="dot">•</span>
+            <span class="item-text">{{ item.text }}</span>
+            <span class="badges">{% for sid in item.source_ids %}<span class="badge">{{ sid }}</span>{% endfor %}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>Nice-to-Haves</h2>
+        <ul class="item-list">
+          {% for item in analysis.nice_to_haves %}
+          <li>
+            <span class="dot">•</span>
+            <span class="item-text">{{ item.text }}</span>
+            <span class="badges">{% for sid in item.source_ids %}<span class="badge">{{ sid }}</span>{% endfor %}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Skill Map</h2>
+      <div class="skill-grid">
+        {% for category, skills in analysis.skill_map.items() %}
+        {% if skills %}
+        <div class="skill-group">
+          <h3>{{ category }}</h3>
+          <div class="skill-tags">
+            {% for skill in skills %}<span class="skill-tag">{{ skill }}</span>{% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Interview Topics</h2>
+      {% for topic in analysis.interview_topics %}
+      <div class="topic-item">
+        <div class="topic-name">
+          <span class="dot">•</span>
+          {{ topic.topic }}
+          <span class="badges">{% for sid in topic.source_ids %}<span class="badge">{{ sid }}</span>{% endfor %}</span>
+        </div>
+        <div class="topic-rationale">{{ topic.rationale }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <h2>Questions to Prepare</h2>
+        <ul class="item-list">
+          {% for q in analysis.prep_questions %}
+          <li><span class="dot">•</span><span class="item-text">{{ q }}</span></li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>Questions to Ask Them</h2>
+        <ul class="item-list">
+          {% for q in analysis.questions_to_ask %}
+          <li><span class="dot">•</span><span class="item-text">{{ q }}</span></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>What to Emphasize</h2>
+      <ul class="item-list">
+        {% for point in analysis.what_to_emphasize %}
+        <li><span class="dot">•</span><span class="item-text">{{ point }}</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+
+  {% endif %}
+
+</main>
+
+</body>
+</html>
