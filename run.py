@@ -19,25 +19,6 @@ from pipeline import ingest, capture, validate, repair, analyze, validate_analys
 # PASTE YOUR JOB DESCRIPTION HERE
 # ─────────────────────────────────────────────
 JD_TEXT = """
-About the job
-The Miner Agency is seeking a full-time, on-site, Data Scientist for a role located in Marietta, GA. The Data Scientist will be responsible for performing advanced data analytics, developing data science models, and generating actionable insights to drive business decisions. The role entails developing data visualizations, analyzing datasets to uncover trends, and collaborating with internal teams to support strategic objectives. The Senior Data Scientist will also engage in statistical modeling and ensure the quality and accuracy of analytical outputs.
-
-
-Qualifications
-
-Expertise in Data Science and advanced data modeling techniques
-Strong knowledge of Statistics and Statistical Analysis
-Proficiency in Data Analytics and Data Analysis to interpret complex datasets
-Experience with Data Visualization to create insightful and impactful visual representations
-Proficiency in programming languages such as Python, R, or SQL
-Exceptional problem-solving and critical thinking skills
-Master’s degree in Data Science, Statistics, Computer Science, or a related field is preferred
-Must be able to obtain a U.S. Security Clearance
-Working knowledge of military and defense is desired
-Previous experience within data science is advantageous
-Strong communication skills to present findings to both technical and non-technical audiences
-
-
 
 """
 
