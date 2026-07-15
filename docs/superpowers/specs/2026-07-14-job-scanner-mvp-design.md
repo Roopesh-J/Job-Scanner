@@ -1,14 +1,14 @@
-# Job Scanner v2 — MVP Design
+# Job Scanner — MVP Design
 
 ## Context
 
-`job-scanner-v2-build-plan.md` describes a past project the user wants to rebuild, better. It lays out 8 goals (extraction, evaluation, an agentic capability, batch mode, interface, automated checks, deployment, writeup) and a suggested priority order. Per direct user instruction, **this document is a goals reference, not a spec to follow literally** — design decisions below deviate from or reorganize the doc's suggestions where it made sense.
+`job-scanner-build-plan.md` is a goals document inspired by a past project the user built before, but this is being treated as the first version of Job Scanner, not a "v2" rebuild. It lays out 8 goals (extraction, evaluation, an agentic capability, batch mode, interface, automated checks, deployment, writeup) and a suggested priority order. Per direct user instruction, **this document is a goals reference, not a spec to follow literally** — design decisions below deviate from or reorganize the doc's suggestions where it made sense.
 
 The user wants a real MVP first: functional, evaluated, and honest about what it does — not a demo. The MVP must be architected with clean extension points for the deferred goals (agentic capability, batch mode, deployment), without over-engineering for them now ("no code design that would be too limiting, however also no code design that is too loose").
 
 **MVP scope** (decided with user):
 - IN: core extraction + analysis (goal 1), candidate fit read (part of goal 1), evaluation harness (goal 2), automated tests (goal 6, via TDD practice), minimal local-only Streamlit UI (goal 5).
-- DEFERRED to v1.1+: agentic capability (goal 3 — doesn't make sense before extraction is proven reliable), batch mode (goal 4), public deployment (goal 7), writeup (goal 8).
+- DEFERRED to post-MVP: agentic capability (goal 3 — doesn't make sense before extraction is proven reliable), batch mode (goal 4), public deployment (goal 7), writeup (goal 8).
 
 This plan covers designing the MVP's architecture and framework. Each deferred goal gets its own design pass later, built on this foundation.
 
@@ -60,7 +60,7 @@ Every extracted fact and every downstream insight must carry an ID and be verifi
 - Third call takes `Posting` + pasted profile text, produces `FitRead` (`strengths`/`gaps`), each with `supporting_requirement_ids`.
 - Candidate profile is provided as **pasted plain text** (not file upload) — same textarea pattern as the posting input, no file-parsing dependency to build/maintain for MVP.
 
-**Result:** a pure-function pipeline, `posting_text → Posting → [Insight] → FitRead`, independently testable per stage. This is also the seam batch mode (v1.1) will map over, and where Stage 1 would later gain a `confidence` field to trigger an agentic lookup (goal 3, later) — no rewrite needed for either.
+**Result:** a pure-function pipeline, `posting_text → Posting → [Insight] → FitRead`, independently testable per stage. This is also the seam batch mode (post-MVP) will map over, and where Stage 1 would later gain a `confidence` field to trigger an agentic lookup (goal 3, later) — no rewrite needed for either.
 
 ---
 
@@ -107,7 +107,7 @@ Single-page Streamlit app:
 
 ## 6. Extensibility seams for deferred goals (no code now, design only)
 
-- **Batch mode (v1.1):** pipeline is already a pure function over one posting — batch mode is "call it N times + add an aggregation module," no core rewrite.
+- **Batch mode (post-MVP):** pipeline is already a pure function over one posting — batch mode is "call it N times + add an aggregation module," no core rewrite.
 - **Agentic capability (later):** Stage 1's `Requirement` schema can grow a `confidence` field later; low confidence triggers a tool-use loop before finalizing. Additive, not a schema break.
 - **Deployment (later):** leading option is **Streamlit Community Cloud** (or Hugging Face Spaces) — purpose-built for a Streamlit app + secrets-managed API key. A static-frontend/GitHub-Pages split was considered and rejected: GitHub Pages only serves static files, this app needs a live server-side process for real-time Claude API calls, and exposing the API key client-side would be a security risk. Rate-limiting/cost caps get designed at this stage, not before.
 
