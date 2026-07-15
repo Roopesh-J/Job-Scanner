@@ -4,123 +4,118 @@
 
 `job-scanner-build-plan.md` is a goals document inspired by a past project the user built before, but this is being treated as the first version of Job Scanner, not a "v2" rebuild. It lays out 8 goals (extraction, evaluation, an agentic capability, batch mode, interface, automated checks, deployment, writeup) and a suggested priority order. Per direct user instruction, **this document is a goals reference, not a spec to follow literally** — design decisions below deviate from or reorganize the doc's suggestions where it made sense.
 
-The user wants a real MVP first: functional, evaluated, and honest about what it does — not a demo. The MVP must be architected with clean extension points for the deferred goals (agentic capability, batch mode, deployment), without over-engineering for them now ("no code design that would be too limiting, however also no code design that is too loose").
+This design went through two rounds. The first pass scoped a full MVP: three-stage pipeline (extract → generic insights → optional candidate fit read), an embedding-based evaluation harness, and CI. Before implementation started, discussion surfaced that this front-loaded rigor (evaluation, exception-raising validation) ahead of a working demo, and that the pipeline split generic insights and candidate fit into two features when they're really the same thing. This document reflects the corrected, phased design.
 
-**MVP scope** (decided with user):
-- IN: core extraction + analysis (goal 1), candidate fit read (part of goal 1), evaluation harness (goal 2), automated tests (goal 6, via TDD practice), minimal local-only Streamlit UI (goal 5).
-- DEFERRED to post-MVP: agentic capability (goal 3 — doesn't make sense before extraction is proven reliable), batch mode (goal 4), public deployment (goal 7), writeup (goal 8).
+**Core hypothesis:** the product helps someone applying for jobs by identifying whether a resume/background is a good fit for a posting (or a posting a good fit for a background — same comparison, either direction). Generic insights independent of a candidate's actual background aren't the real value; extraction alone is just summarization. Insights only become real value once evaluated against something concrete — so candidate background text is a required input to the core loop, not an optional add-on.
 
-This plan covers designing the MVP's architecture and framework. Each deferred goal gets its own design pass later, built on this foundation.
+---
 
-There is no GitHub remote for this project yet. A remote repo and initial push will be created once the MVP is complete and working — until then, work happens on local commits only.
+## Phase model
+
+- **Phase 0 (this document's scope):** posting + candidate background text in → grounded structured extraction + resume-aware strengths/gaps out. No eval harness, no CI.
+- **Phase 1 (next):** evaluation harness — reference set, matching, precision/recall, grounding-rate metrics. Deferred because it only makes sense once Phase 0 produces something real to measure.
+- **Phase 2+:** generic posting-only insights (interview prep topics not tied to a resume), batch mode, agentic capability (goal 3 from the source doc), CI, public deployment, writeup.
 
 ---
 
 ## 1. Architecture & tech stack
 
-- **Language/runtime:** Python (existing venv in this repo).
-- **LLM:** Anthropic Claude API via the raw Anthropic SDK — no LangChain/LangGraph. Every prompt, decision, and response stays visible and directly testable, which matters given the project's core value is traceability. This also keeps the door open for goal 3 (agentic tool-use) later without fighting a framework's abstractions.
-- **UI:** Streamlit, run locally only for the MVP (`streamlit run app.py`). No hosting/auth/rate-limiting work yet — that's real effort that only matters once strangers can reach it (goal 7, deferred).
-- **Package layout** — organized around pipeline stages so each is independently testable/swappable:
+- **Language/runtime:** Python 3.12 (existing venv in this repo).
+- **LLM:** Anthropic Claude API via the raw Anthropic SDK — no LangChain/LangGraph. Every prompt, decision, and response stays visible and directly testable, which matters given the project's core value is traceability.
+- **UI:** Streamlit, run locally only for Phase 0 (`streamlit run job_scanner/app.py`). No hosting/auth/rate-limiting work yet.
+- **Dependencies:** `anthropic`, `pydantic`, `streamlit`, `pytest` (dev). No `sentence-transformers`/`numpy` in Phase 0 — those are Phase 1's, for eval matching.
+- **Package layout:**
 
 ```
 job_scanner/
-  llm/            # Anthropic client wrapper, prompt templates
-  extraction/     # Stage 1: fact-finding (posting text -> structured facts)
-  analysis/       # Stage 2: reasoning (facts -> insights, gaps, prep topics)
-  fit/            # Stage 3: candidate fit read (facts + profile -> strengths/gaps)
-  eval/           # Goal 2: reference set, metrics, report generation
-  app.py          # Streamlit entrypoint
+  llm/client.py            # Anthropic client wrapper, forced tool calls
+  models.py                 # Posting, Requirement, Responsibility, Insight, etc.
+  validation.py              # find_ungrounded_quotes, find_invalid_references (pure functions)
+  extraction/extractor.py    # Stage 1: posting text -> ExtractionResult
+  analysis/analyzer.py       # Stage 2: posting + candidate text -> AnalysisResult
+  ui_helpers.py              # pure rendering helpers (id lookup, source formatting)
+  app.py                     # Streamlit entrypoint
 tests/
-  fixtures/       # golden postings + expected extractions for regression tests
-.github/workflows/ci.yml
+  fixtures/                  # golden postings + expected extractions for regression tests
 pyproject.toml
 ```
+
+There is no GitHub remote for this project yet. A remote repo and initial push will be created once Phase 0 is complete and working — until then, work happens on local commits only.
 
 ---
 
 ## 2. Core pipeline & traceability
 
-Every extracted fact and every downstream insight must carry an ID and be verifiable against source text — this is the mechanism, not just a principle.
+Two stages, not three — generic insights and candidate fit were split in the first design pass, but they're the same comparison from different angles, and generic insights without a candidate background aren't the actual product.
 
 **Stage 1 — Extraction** (fact-finding only; the only judgment made here is required/preferred/unclear classification):
 - Claude call using a **forced tool call** (`tool_choice`) against a strict schema — not a "please output JSON" prompt — to guarantee valid structure every call.
-- Output: `Posting` object with `title`, `company`, `location`, `seniority`, and lists of `Requirement`/`Responsibility` items, each with:
-  - `id` (e.g. `req-1`)
-  - `text` (model's paraphrase)
-  - `category`: `required` / `preferred` / `unclear`
-  - `source_quote`: an **exact verbatim substring** copied from the posting
-- `source_quote` is the traceability mechanism: code checks `source_quote in posting_text` after every call. A non-matching quote is a deterministic, caught hallucination — this check doubles as a goal-6 regression test.
+- Raw model output has `title`, `company`, `location`, `seniority`, and lists of responsibility/requirement items with `text` (+ `category` for requirements) and `source_quote`. **IDs are assigned by code** (`req-1`, `resp-1`, ... via enumeration) — never by the model, which is unreliable at bookkeeping like unique sequential IDs.
+- `source_quote` must be an **exact verbatim substring** of the posting text — checked with a plain deterministic substring check (`quote in posting_text`), never an LLM judge.
+- Returns `ExtractionResult(posting: Posting, dropped_ids: list[str])`. See §3 for what happens to items that fail the grounding check.
 
-**Stage 2 — Analysis** (reasoning on top of Stage 1's structured output only, never on raw posting text):
-- Second Claude call takes the `Posting` object (not raw text) and produces `Insight` objects (what to emphasize, expected interview gaps, prep topics), each carrying `supporting_requirement_ids` referencing Stage 1 IDs.
-- Because Stage 2 never sees raw text, it cannot invent a requirement — it can only reference IDs that already exist, which code validates.
+**Stage 2 — Analysis** (reasoning over Stage 1's structured output only, never raw posting text, plus the candidate's background text):
+- Second Claude call takes the `Posting` object + the candidate's pasted background text, and produces `Insight` items, each with a `kind` of `strength` or `gap` and `supporting_requirement_ids` referencing Stage 1 IDs.
+- Because this stage never sees raw posting text, it cannot invent a requirement — it can only reference IDs that already exist in Stage 1's output, which code validates.
+- Candidate background is provided as **pasted plain text** (not file upload) — no PDF/DOCX parsing dependency to build/maintain, and it doesn't need to be a formatted resume: any text works (informal notes, a LinkedIn About section, etc.).
+- Returns `AnalysisResult(insights: list[Insight], dropped_count: int)`. See §3 for filtering behavior.
 
-**Stage 3 — Fit read** (optional; only runs if a candidate profile is provided):
-- Third call takes `Posting` + pasted profile text, produces `FitRead` (`strengths`/`gaps`), each with `supporting_requirement_ids`.
-- Candidate profile is provided as **pasted plain text** (not file upload) — same textarea pattern as the posting input, no file-parsing dependency to build/maintain for MVP.
-
-**Result:** a pure-function pipeline, `posting_text → Posting → [Insight] → FitRead`, independently testable per stage. This is also the seam batch mode (post-MVP) will map over, and where Stage 1 would later gain a `confidence` field to trigger an agentic lookup (goal 3, later) — no rewrite needed for either.
+**Result:** a pure-function pipeline, `posting_text → ExtractionResult`, then `(Posting, candidate_text) → AnalysisResult`. Both stages are independently testable. This is also the seam batch mode (Phase 2+) will map over, and where an agentic lookup (goal 3, later) would slot into Stage 1 — no rewrite needed for either.
 
 ---
 
-## 3. Evaluation harness (goal 2)
+## 3. Validation behavior: item-level filtering, not blocking or silent
 
-User has real saved postings but no labels yet — this designs the labeling schema and metrics.
+This was the one real design mistake caught and corrected during planning, worth documenting so it doesn't get re-litigated. The instinct was to make validation non-blocking so one bad extraction doesn't crash the whole request — reasonable goal, wrong first mechanism.
 
-**Reference set:**
-- A folder of raw posting text files + one hand-labeled JSON file per posting, using the **same `Posting` schema** Stage 1 produces — no separate schema to invent, and predictions/labels are directly comparable.
-- Start with ~15–25 postings for real, defensible numbers without labeling becoming its own project; grow over time.
+**What was considered and rejected:**
+- **Hard-raise on any violation** (the original Phase-0-planning-round design): one ungrounded quote or one bad reference id kills the entire request. Correct in principle but bad UX — a single shaky item shouldn't nuke an otherwise-good extraction.
+- **Silent pass-through** (briefly proposed, then rejected): don't check at all, or check but don't act on it. This doesn't save any implementation effort — `find_ungrounded_quotes`/`find_invalid_references` are the same pure functions either way — and it lets unverifiable data flow straight into the fit judgment, which is the actual product. That defeats the entire traceability premise the project is built on.
 
-**Matching predicted requirements to reference requirements:**
-- Model wording won't exactly match hand-labeled wording, so exact string match would undercount. Use **embedding similarity matching**: embed both sets of requirement texts with a local `sentence-transformers` model (no extra API cost), compute cosine similarity, and take each prediction's best-scoring reference match.
-- If the best score clears a threshold (e.g. 0.7) → match (true positive). Unmatched predictions = false positives (invented). Unmatched reference items = false negatives (missed).
-- This is a one-shot embedding comparison (nearest-neighbor / semantic-search style), not autoregressive generation — no sequence or next-token prediction involved.
-
-**The three metrics the source doc calls for, made concrete:**
-1. **Requirement-finding accuracy** — precision/recall from the matching step above.
-2. **Required/preferred/unclear accuracy** — for each matched pair, compare `category` directly → confusion matrix.
-3. **Grounding accuracy** — two deterministic, non-LLM checks: (a) every `source_quote` is a verbatim substring of the posting text, (b) every `supporting_requirement_ids` reference points to an ID that actually exists in Stage 1's output. Reportable as pass/fail percentages.
-
-**Output:** `eval/runner.py` runs the full pipeline against the reference set and produces a report (JSON + a visualization using the dataviz skill for the confusion matrix / precision-recall bars) — real numbers, not a claim that evaluation exists.
+**What Phase 0 actually does — item-level filtering:**
+- Stage 1: any requirement/responsibility whose `source_quote` isn't a verbatim substring of the posting text is **dropped from the returned `Posting`**, not raised as an exception. Its id is collected in `ExtractionResult.dropped_ids`.
+- Stage 2: any insight citing a `supporting_requirement_ids` value that doesn't exist in Stage 1's output is **dropped from the returned insight list**, not raised. The count is collected in `AnalysisResult.dropped_count`.
+- The UI (§5) surfaces these as a visible caveat ("2 items couldn't be verified and were excluded") — nothing ungrounded is ever silently shown as trustworthy, but one bad item never blocks the rest of a useful result.
 
 ---
 
-## 4. Automated checks (goal 6) & CI
-
-Built alongside the code via the TDD skill, not retrofitted:
-- **Unit tests** per pipeline stage against fixed input/output fixtures.
-- **Schema validation tests** — Pydantic models reject malformed output at the boundary (bad category value, missing field, etc.) so a broken structured-output call fails loudly.
-- **Grounding regression tests** — the two deterministic eval checks (verbatim quote match, valid ID references) run against fixture postings on every test run, catching a prompt change that breaks traceability immediately.
-- **CI** — GitHub Actions runs `pytest` on every push/PR. Unit tests run against **mocked/recorded Claude API responses** (fast, deterministic, no per-commit API cost); live-API smoke tests run separately/manually, not on every push. Note: CI wiring will only take effect once a GitHub remote exists (see Context) — the workflow file can be written now, but won't run until the repo is pushed.
-
----
-
-## 5. UI (goal 5, minimal, local)
+## 4. UI (Phase 0, minimal, local)
 
 Single-page Streamlit app:
-- Two text areas: **posting** (required), **candidate profile** (optional — filling it runs Stage 3).
-- "Analyze" button runs the pipeline synchronously (postings are short; a few seconds of latency is fine locally).
-- Results rendered with **visible** traceability: each insight/gap/prep-topic shown next to the `source_quote`(s) grounding it (e.g. an expandable "why" showing the exact posting line). This is the one place the source doc is explicit that traceability must be visible, not just present in the underlying data.
+- Two **required** text areas: **posting** and **candidate background**. Both are required — the Analyze button stays disabled until both are filled, since Stage 2 (the actual insight-generation) needs both to produce anything meaningful. Extraction alone isn't the deliverable.
+- "Analyze" button runs the pipeline synchronously.
+- Results rendered with **visible** traceability: each requirement shows its `source_quote`; each strength/gap shows the `source_quote`(s) it's grounded in (e.g. a "Why:" caption). Any dropped items from §3 are shown as a warning banner, not hidden.
 
 ---
 
-## 6. Extensibility seams for deferred goals (no code now, design only)
+## 5. Deferred: evaluation harness (Phase 1)
 
-- **Batch mode (post-MVP):** pipeline is already a pure function over one posting — batch mode is "call it N times + add an aggregation module," no core rewrite.
-- **Agentic capability (later):** Stage 1's `Requirement` schema can grow a `confidence` field later; low confidence triggers a tool-use loop before finalizing. Additive, not a schema break.
-- **Deployment (later):** leading option is **Streamlit Community Cloud** (or Hugging Face Spaces) — purpose-built for a Streamlit app + secrets-managed API key. A static-frontend/GitHub-Pages split was considered and rejected: GitHub Pages only serves static files, this app needs a live server-side process for real-time Claude API calls, and exposing the API key client-side would be a security risk. Rate-limiting/cost caps get designed at this stage, not before.
+Not built in Phase 0, but the design is settled so Phase 1 is a straightforward next step, not a fresh design exercise:
+- Reference set: raw posting text files + hand-labeled JSON using the same `Posting` schema Stage 1 produces.
+- Matching predicted vs. reference requirements: embedding similarity (local `sentence-transformers` model) with a similarity threshold, since exact wording won't match.
+- Metrics: requirement-finding precision/recall, required/preferred/unclear category accuracy (confusion matrix), grounding accuracy (the same substring check from §3, now measured as a percentage across the reference set instead of used to filter live results).
+- This is deferred specifically because it only produces meaningful numbers once there's a working Stage 1/Stage 2 baseline to measure — building it first would mean measuring an unproven pipeline.
 
 ---
 
-## Verification (end of MVP implementation)
+## 6. Deferred: everything else (Phase 2+)
 
-- `pytest` passes locally and in CI, including schema-validation and grounding-regression tests.
-- `eval/runner.py` runs against the labeled reference set and produces a real report (precision/recall, category confusion matrix, grounding pass rate) — reviewed manually for plausibility, not just "it ran."
-- Manual smoke test: run `streamlit run app.py`, paste a real posting (+ a profile), confirm structured output renders with visible source-quote traceability for at least one insight and one fit-read item.
+- **Generic posting-only insights** (what to emphasize, interview-gap topics, prep topics — independent of a candidate's background): this was Phase 0's original "Stage 2" in the first design pass. Demoted because, per the core hypothesis above, insights without a candidate background to compare against aren't the real value.
+- **Batch mode:** the pipeline is already pure functions over one posting — batch mode is "call it N times + add an aggregation module," no core rewrite.
+- **Agentic capability (goal 3 from the source doc):** doesn't make sense before the extraction pipeline is proven reliable (needs Phase 1's numbers first). Stage 1's `Requirement` schema can grow a `confidence` field later; low confidence would trigger a tool-use loop before finalizing — additive, not a schema break.
+- **Automated checks / CI:** unit tests already exist per-task via TDD practice (this is how the code gets built, not a separate feature) — but the *CI workflow file* is deferred since it's inert with no GitHub remote to run against yet.
+- **Deployment:** leading option is Streamlit Community Cloud (or Hugging Face Spaces) — purpose-built for a Streamlit app + secrets-managed API key. A static-frontend/GitHub-Pages split was considered and rejected: GitHub Pages only serves static files, this app needs a live server-side process for real-time Claude API calls, and exposing the API key client-side would be a security risk.
+- **Writeup:** last, once there's something real (working app + Phase 1's numbers) to write about.
+
+---
+
+## Verification (Phase 0)
+
+- `pytest` passes locally, including a test that an ungrounded requirement is dropped (not raised) and the rest of extraction still succeeds, and a test that an insight citing an unknown id is dropped (not raised) and the rest of analysis still succeeds.
+- Manual smoke test: run `streamlit run job_scanner/app.py`, paste a real posting and real (or informal) background text, confirm strengths/gaps render with visible source-quote traceability, and confirm the app still renders a usable result even if one item fails verification (a warning shown, not a crash).
 
 ---
 
 ## Next step
 
-Turn this into a step-by-step implementation plan via the `writing-plans` skill, starting with Stage 1 extraction + its schema, per the priority order: extraction foundation before evaluation before anything else.
+Turn this into a step-by-step implementation plan via the `writing-plans` skill: scaffolding → shared models → validation utilities → LLM client → Stage 1 extraction (with item-level filtering) → Stage 2 analysis (with item-level filtering) → Streamlit UI.
