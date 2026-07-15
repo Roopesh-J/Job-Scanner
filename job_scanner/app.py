@@ -31,6 +31,11 @@ if st.button("Analyze", disabled=not can_analyze):
     if extraction.dropped_ids:
         st.warning(f"{len(extraction.dropped_ids)} item(s) couldn't be verified against the posting and were excluded.")
 
+    st.subheader("Responsibilities")
+    for resp in posting.responsibilities:
+        st.markdown(f"- {resp.text}")
+        st.caption(f"Source: {format_sources([resp.id], id_lookup)}")
+
     st.subheader("Requirements")
     for req in posting.requirements:
         st.markdown(f"**[{req.category.value}]** {req.text}")
