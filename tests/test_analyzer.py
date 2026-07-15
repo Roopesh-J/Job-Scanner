@@ -39,8 +39,8 @@ def test_analyze_fit_builds_insights_with_assigned_ids():
 def test_analyze_fit_drops_insight_citing_unknown_id_but_keeps_the_rest():
     raw_output = {
         "insights": [
-            {"text": "Strong Python background", "kind": "strength", "supporting_requirement_ids": ["req-1"]},
             {"text": "Bogus insight", "kind": "gap", "supporting_requirement_ids": ["req-99"]},
+            {"text": "Strong Python background", "kind": "strength", "supporting_requirement_ids": ["req-1"]},
         ]
     }
     client = _mock_client(raw_output)
@@ -48,5 +48,6 @@ def test_analyze_fit_drops_insight_citing_unknown_id_but_keeps_the_rest():
     result = analyze_fit(_posting(), "profile text", client)
 
     assert len(result.insights) == 1
+    assert result.insights[0].id == "insight-1"
     assert result.insights[0].text == "Strong Python background"
     assert result.dropped_count == 1
