@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from job_scanner.llm.client import LLMClient
+from job_scanner.llm_client import LLMClient
 from job_scanner.models import Insight, InsightKind, Posting
 from job_scanner.validation import find_invalid_references
 

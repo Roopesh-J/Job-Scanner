@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from job_scanner.llm.client import LLMClient
+from job_scanner.llm_client import LLMClient
 
 
 def test_call_tool_returns_tool_input_when_model_calls_the_tool():

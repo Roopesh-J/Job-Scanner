@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from job_scanner.analysis.analyzer import analyze_fit
+from job_scanner.analyzer import analyze_fit
 from job_scanner.models import Category, InsightKind, Posting, Requirement, Responsibility
 
 

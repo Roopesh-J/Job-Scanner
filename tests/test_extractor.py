@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from job_scanner.extraction.extractor import extract_posting
+from job_scanner.extractor import extract_posting
 from job_scanner.models import Category
 
 POSTING_TEXT = "We need someone with 5+ years of Python and ownership of our public API."

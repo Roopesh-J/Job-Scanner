@@ -2,9 +2,9 @@ import os
 
 import streamlit as st
 
-from job_scanner.analysis.analyzer import analyze_fit
-from job_scanner.extraction.extractor import extract_posting
-from job_scanner.llm.client import LLMClient
+from job_scanner.analyzer import analyze_fit
+from job_scanner.extractor import extract_posting
+from job_scanner.llm_client import LLMClient
 from job_scanner.models import InsightKind
 from job_scanner.ui_helpers import build_id_lookup, format_sources
 
