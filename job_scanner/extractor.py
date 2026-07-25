@@ -66,6 +66,7 @@ def extract_posting(posting_text: str, client: LLMClient) -> ExtractionResult:
         user=posting_text,
         tool_name=EXTRACT_TOOL_NAME,
         tool_schema=EXTRACT_TOOL_SCHEMA,
+        tool_description="Record the structured breakdown of a job posting extracted from its text.",
     )
 
     responsibilities = [
@@ -93,13 +94,11 @@ def extract_posting(posting_text: str, client: LLMClient) -> ExtractionResult:
 
     dropped_ids = find_ungrounded_quotes(posting, posting_text)
     if dropped_ids:
-        posting = Posting(
-            title=posting.title,
-            company=posting.company,
-            location=posting.location,
-            seniority=posting.seniority,
-            responsibilities=[r for r in posting.responsibilities if r.id not in dropped_ids],
-            requirements=[r for r in posting.requirements if r.id not in dropped_ids],
+        posting = posting.model_copy(
+            update={
+                "responsibilities": [r for r in posting.responsibilities if r.id not in dropped_ids],
+                "requirements": [r for r in posting.requirements if r.id not in dropped_ids],
+            }
         )
 
     return ExtractionResult(posting=posting, dropped_ids=dropped_ids)

@@ -11,13 +11,15 @@ class LLMClient:
         self._client = anthropic.Anthropic(api_key=api_key or os.environ.get("ANTHROPIC_API_KEY"))
         self.model = model
 
-    def call_tool(self, system: str, user: str, tool_name: str, tool_schema: dict) -> dict[str, Any]:
+    def call_tool(
+        self, system: str, user: str, tool_name: str, tool_schema: dict, tool_description: str
+    ) -> dict[str, Any]:
         response = self._client.messages.create(
             model=self.model,
             max_tokens=4096,
             system=system,
             messages=[{"role": "user", "content": user}],
-            tools=[{"name": tool_name, "description": tool_name, "input_schema": tool_schema}],
+            tools=[{"name": tool_name, "description": tool_description, "input_schema": tool_schema}],
             tool_choice={"type": "tool", "name": tool_name},
         )
         for block in response.content:

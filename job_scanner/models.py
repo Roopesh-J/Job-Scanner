@@ -43,4 +43,4 @@ class Insight(BaseModel):
     id: str
     text: str
     kind: InsightKind
-    supporting_requirement_ids: list[str]
+    supporting_ids: list[str]

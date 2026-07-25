@@ -16,9 +16,9 @@ ANALYZE_TOOL_SCHEMA = {
                 "properties": {
                     "text": {"type": "string"},
                     "kind": {"type": "string", "enum": ["strength", "gap"]},
-                    "supporting_requirement_ids": {"type": "array", "items": {"type": "string"}},
+                    "supporting_ids": {"type": "array", "items": {"type": "string"}},
                 },
-                "required": ["text", "kind", "supporting_requirement_ids"],
+                "required": ["text", "kind", "supporting_ids"],
             },
         }
     },
@@ -68,6 +68,7 @@ def analyze_fit(posting: Posting, candidate_text: str, client: LLMClient) -> Ana
         user=user_message,
         tool_name=ANALYZE_TOOL_NAME,
         tool_schema=ANALYZE_TOOL_SCHEMA,
+        tool_description="Record the strength and gap insights comparing the candidate's background to the posting.",
     )
 
     valid_ids = posting.all_ids()
@@ -75,7 +76,7 @@ def analyze_fit(posting: Posting, candidate_text: str, client: LLMClient) -> Ana
     dropped_count = 0
 
     for item in raw["insights"]:
-        violations = find_invalid_references(item["supporting_requirement_ids"], valid_ids)
+        violations = find_invalid_references(item["supporting_ids"], valid_ids)
         if violations:
             dropped_count += 1
             continue
@@ -84,7 +85,7 @@ def analyze_fit(posting: Posting, candidate_text: str, client: LLMClient) -> Ana
                 id=f"insight-{len(insights) + 1}",
                 text=item["text"],
                 kind=InsightKind(item["kind"]),
-                supporting_requirement_ids=item["supporting_requirement_ids"],
+                supporting_ids=item["supporting_ids"],
             )
         )
 

@@ -12,7 +12,9 @@ def test_call_tool_returns_tool_input_when_model_calls_the_tool():
     fake_response = SimpleNamespace(content=[fake_block])
 
     with patch.object(client._client.messages, "create", return_value=fake_response) as mock_create:
-        result = client.call_tool(system="sys", user="usr", tool_name="my_tool", tool_schema={"type": "object"})
+        result = client.call_tool(
+            system="sys", user="usr", tool_name="my_tool", tool_schema={"type": "object"}, tool_description="desc"
+        )
 
     assert result == {"foo": "bar"}
     mock_create.assert_called_once()
@@ -26,4 +28,6 @@ def test_call_tool_raises_when_model_does_not_call_the_tool():
 
     with patch.object(client._client.messages, "create", return_value=fake_response):
         with pytest.raises(RuntimeError):
-            client.call_tool(system="sys", user="usr", tool_name="my_tool", tool_schema={"type": "object"})
+            client.call_tool(
+                system="sys", user="usr", tool_name="my_tool", tool_schema={"type": "object"}, tool_description="desc"
+            )

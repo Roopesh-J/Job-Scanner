@@ -28,11 +28,11 @@ def test_posting_all_ids_combines_requirements_and_responsibilities():
 
 def test_insight_requires_valid_kind():
     with pytest.raises(ValidationError):
-        Insight(id="insight-1", text="x", kind="not-a-real-kind", supporting_requirement_ids=["req-1"])
+        Insight(id="insight-1", text="x", kind="not-a-real-kind", supporting_ids=["req-1"])
 
 
 def test_insight_accepts_strength_and_gap_kinds():
-    strength = Insight(id="insight-1", text="Strong Python background", kind=InsightKind.STRENGTH, supporting_requirement_ids=["req-1"])
-    gap = Insight(id="insight-2", text="No Kubernetes experience", kind=InsightKind.GAP, supporting_requirement_ids=["req-2"])
+    strength = Insight(id="insight-1", text="Strong Python background", kind=InsightKind.STRENGTH, supporting_ids=["req-1"])
+    gap = Insight(id="insight-2", text="No Kubernetes experience", kind=InsightKind.GAP, supporting_ids=["req-2"])
     assert strength.kind == InsightKind.STRENGTH
     assert gap.kind == InsightKind.GAP
