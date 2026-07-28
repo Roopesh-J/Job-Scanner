@@ -9,7 +9,7 @@ from job_scanner.llm_client import LLMClient
 def test_call_tool_returns_tool_input_when_model_calls_the_tool():
     client = LLMClient(api_key="test-key")
     fake_block = SimpleNamespace(type="tool_use", name="my_tool", input={"foo": "bar"})
-    fake_response = SimpleNamespace(content=[fake_block])
+    fake_response = SimpleNamespace(content=[fake_block], stop_reason="tool_use")
 
     with patch.object(client._client.messages, "create", return_value=fake_response) as mock_create:
         result = client.call_tool(
@@ -24,10 +24,22 @@ def test_call_tool_returns_tool_input_when_model_calls_the_tool():
 
 def test_call_tool_raises_when_model_does_not_call_the_tool():
     client = LLMClient(api_key="test-key")
-    fake_response = SimpleNamespace(content=[SimpleNamespace(type="text", text="I refuse.")])
+    fake_response = SimpleNamespace(content=[SimpleNamespace(type="text", text="I refuse.")], stop_reason="end_turn")
 
     with patch.object(client._client.messages, "create", return_value=fake_response):
         with pytest.raises(RuntimeError):
+            client.call_tool(
+                system="sys", user="usr", tool_name="my_tool", tool_schema={"type": "object"}, tool_description="desc"
+            )
+
+
+def test_call_tool_raises_clear_error_when_response_is_truncated():
+    client = LLMClient(api_key="test-key")
+    fake_block = SimpleNamespace(type="tool_use", name="my_tool", input={"foo": "bar"})
+    fake_response = SimpleNamespace(content=[fake_block], stop_reason="max_tokens")
+
+    with patch.object(client._client.messages, "create", return_value=fake_response):
+        with pytest.raises(RuntimeError, match="cut off"):
             client.call_tool(
                 system="sys", user="usr", tool_name="my_tool", tool_schema={"type": "object"}, tool_description="desc"
             )
