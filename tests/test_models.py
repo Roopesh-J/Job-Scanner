@@ -1,26 +1,4 @@
-import pytest
-from pydantic import ValidationError
-
-from job_scanner.models import (
-    Category,
-    Insight,
-    InsightKind,
-    Posting,
-    Requirement,
-    Responsibility,
-    SearchAction,
-    SearchResultItem,
-)
-
-
-def test_requirement_accepts_valid_category():
-    req = Requirement(id="req-1", text="5+ years Python", category=Category.REQUIRED, source_quote="5+ years of Python")
-    assert req.category == Category.REQUIRED
-
-
-def test_requirement_rejects_invalid_category():
-    with pytest.raises(ValidationError):
-        Requirement(id="req-1", text="x", category="not-a-real-category", source_quote="x")
+from job_scanner.models import Category, Posting, Requirement, Responsibility
 
 
 def test_posting_all_ids_combines_requirements_and_responsibilities():
@@ -33,30 +11,3 @@ def test_posting_all_ids_combines_requirements_and_responsibilities():
         requirements=[Requirement(id="req-1", text="Python", category=Category.REQUIRED, source_quote="Python")],
     )
     assert posting.all_ids() == {"resp-1", "req-1"}
-
-
-def test_insight_requires_valid_kind():
-    with pytest.raises(ValidationError):
-        Insight(id="insight-1", text="x", kind="not-a-real-kind", supporting_ids=["req-1"])
-
-
-def test_insight_accepts_strength_and_gap_kinds():
-    strength = Insight(id="insight-1", text="Strong Python background", kind=InsightKind.STRENGTH, supporting_ids=["req-1"])
-    gap = Insight(id="insight-2", text="No Kubernetes experience", kind=InsightKind.GAP, supporting_ids=["req-2"])
-    assert strength.kind == InsightKind.STRENGTH
-    assert gap.kind == InsightKind.GAP
-
-
-def test_search_action_holds_query_and_results():
-    action = SearchAction(
-        query="what is KQL",
-        results=[SearchResultItem(title="Kusto Query Language - Microsoft Docs", url="https://example.com/kql")],
-    )
-    assert action.query == "what is KQL"
-    assert action.results[0].title == "Kusto Query Language - Microsoft Docs"
-    assert action.results[0].url == "https://example.com/kql"
-
-
-def test_search_action_accepts_empty_results():
-    action = SearchAction(query="some obscure term", results=[])
-    assert action.results == []

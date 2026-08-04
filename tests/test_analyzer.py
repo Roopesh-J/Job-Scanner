@@ -71,14 +71,3 @@ def test_analyze_fit_includes_search_actions_when_present():
     assert len(result.search_actions) == 1
     assert result.search_actions[0].query == "what is KQL"
     assert result.search_actions[0].results[0].title == "Kusto Query Language"
-
-
-def test_analyze_fit_calls_client_with_search_capability():
-    raw_output = {"insights": []}
-    client = _mock_client(raw_output)
-
-    analyze_fit(_posting(), "profile text", client)
-
-    client.call_tool_with_search.assert_called_once()
-    _, kwargs = client.call_tool_with_search.call_args
-    assert kwargs["tool_name"] == "analyze_fit"

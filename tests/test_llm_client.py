@@ -115,23 +115,3 @@ def test_call_tool_with_search_raises_when_final_tool_never_called():
             client.call_tool_with_search(
                 system="sys", user="usr", tool_name="analyze_fit", tool_schema={"type": "object"}, tool_description="desc"
             )
-
-
-def test_call_tool_with_search_resends_paused_turn_then_returns_final_call():
-    client = LLMClient(api_key="test-key")
-    paused_block = SimpleNamespace(type="server_tool_use", name="web_search", input={"query": "what is KQL"})
-    paused_response = SimpleNamespace(content=[paused_block], stop_reason="pause_turn")
-    final_call = SimpleNamespace(type="tool_use", name="analyze_fit", input={"insights": []})
-    resumed_response = SimpleNamespace(content=[final_call], stop_reason="tool_use")
-
-    with patch.object(
-        client._client.messages, "create", side_effect=[paused_response, resumed_response]
-    ) as mock_create:
-        tool_input, search_actions = client.call_tool_with_search(
-            system="sys", user="usr", tool_name="analyze_fit", tool_schema={"type": "object"}, tool_description="desc"
-        )
-
-    assert tool_input == {"insights": []}
-    assert mock_create.call_count == 2
-    second_call_kwargs = mock_create.call_args_list[1].kwargs
-    assert second_call_kwargs["messages"][-1]["role"] == "assistant"

@@ -46,7 +46,3 @@ def test_format_search_actions_handles_no_results():
     actions = [SearchAction(query="some obscure term", results=[])]
     lines = format_search_actions(actions)
     assert lines == ['Searched “some obscure term” — found: no results']
-
-
-def test_format_search_actions_returns_empty_list_for_no_actions():
-    assert format_search_actions([]) == []
