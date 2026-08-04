@@ -1,5 +1,5 @@
-from job_scanner.models import Category, Posting, Requirement, Responsibility
-from job_scanner.ui_helpers import build_id_lookup, format_sources
+from job_scanner.models import Category, Posting, Requirement, Responsibility, SearchAction, SearchResultItem
+from job_scanner.ui_helpers import build_id_lookup, format_search_actions, format_sources
 
 
 def _posting() -> Posting:
@@ -26,3 +26,27 @@ def test_format_sources_joins_quoted_matches_and_skips_unknown_ids():
 
 def test_format_sources_returns_empty_string_for_no_matches():
     assert format_sources(["req-99"], {}) == ""
+
+
+def test_format_search_actions_lists_query_and_result_titles():
+    actions = [
+        SearchAction(
+            query="what is KQL",
+            results=[
+                SearchResultItem(title="Kusto Query Language - Microsoft Docs", url="https://example.com/kql"),
+                SearchResultItem(title="KQL Tutorial", url="https://example.com/kql-tutorial"),
+            ],
+        )
+    ]
+    lines = format_search_actions(actions)
+    assert lines == ['Searched “what is KQL” — found: Kusto Query Language - Microsoft Docs, KQL Tutorial']
+
+
+def test_format_search_actions_handles_no_results():
+    actions = [SearchAction(query="some obscure term", results=[])]
+    lines = format_search_actions(actions)
+    assert lines == ['Searched “some obscure term” — found: no results']
+
+
+def test_format_search_actions_returns_empty_list_for_no_actions():
+    assert format_search_actions([]) == []

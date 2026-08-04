@@ -4,7 +4,7 @@ from job_scanner.analyzer import analyze_fit
 from job_scanner.extractor import extract_posting
 from job_scanner.llm_client import LLMClient
 from job_scanner.models import InsightKind
-from job_scanner.ui_helpers import build_id_lookup, format_sources
+from job_scanner.ui_helpers import build_id_lookup, format_search_actions, format_sources
 
 st.set_page_config(page_title="Job Scanner", layout="wide")
 st.title("Job Scanner")
@@ -47,6 +47,11 @@ if st.button("Analyze", disabled=not can_analyze):
 
         if analysis.dropped_count:
             st.warning(f"{analysis.dropped_count} insight(s) couldn't be verified and were excluded.")
+
+        if analysis.search_actions:
+            with st.expander("Claude looked something up while analyzing"):
+                for line in format_search_actions(analysis.search_actions):
+                    st.markdown(f"- {line}")
 
         strengths = [i for i in analysis.insights if i.kind == InsightKind.STRENGTH]
         gaps = [i for i in analysis.insights if i.kind == InsightKind.GAP]
