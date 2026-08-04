@@ -43,3 +43,95 @@ def test_call_tool_raises_clear_error_when_response_is_truncated():
             client.call_tool(
                 system="sys", user="usr", tool_name="my_tool", tool_schema={"type": "object"}, tool_description="desc"
             )
+
+
+def test_call_tool_with_search_returns_tool_input_when_no_search_happens():
+    client = LLMClient(api_key="test-key")
+    fake_block = SimpleNamespace(type="tool_use", name="analyze_fit", input={"insights": []})
+    fake_response = SimpleNamespace(content=[fake_block], stop_reason="tool_use")
+
+    with patch.object(client._client.messages, "create", return_value=fake_response) as mock_create:
+        tool_input, search_actions = client.call_tool_with_search(
+            system="sys", user="usr", tool_name="analyze_fit", tool_schema={"type": "object"}, tool_description="desc"
+        )
+
+    assert tool_input == {"insights": []}
+    assert search_actions == []
+    _, kwargs = mock_create.call_args
+    assert kwargs["tool_choice"] == {"type": "any"}
+    tool_types = {t.get("type") for t in kwargs["tools"]}
+    assert "web_search_20260209" in tool_types
+
+
+def test_call_tool_with_search_captures_search_trace_before_final_tool_call():
+    client = LLMClient(api_key="test-key")
+    search_call = SimpleNamespace(type="server_tool_use", name="web_search", input={"query": "what is KQL"})
+    search_result_item = SimpleNamespace(
+        type="web_search_result", title="Kusto Query Language", url="https://example.com/kql"
+    )
+    search_result = SimpleNamespace(
+        type="web_search_tool_result", tool_use_id="srvtoolu_1", content=[search_result_item]
+    )
+    final_call = SimpleNamespace(type="tool_use", name="analyze_fit", input={"insights": []})
+    fake_response = SimpleNamespace(content=[search_call, search_result, final_call], stop_reason="tool_use")
+
+    with patch.object(client._client.messages, "create", return_value=fake_response):
+        tool_input, search_actions = client.call_tool_with_search(
+            system="sys", user="usr", tool_name="analyze_fit", tool_schema={"type": "object"}, tool_description="desc"
+        )
+
+    assert tool_input == {"insights": []}
+    assert search_actions == [
+        {"query": "what is KQL", "results": [{"title": "Kusto Query Language", "url": "https://example.com/kql"}]}
+    ]
+
+
+def test_call_tool_with_search_proceeds_when_search_errors():
+    client = LLMClient(api_key="test-key")
+    search_call = SimpleNamespace(type="server_tool_use", name="web_search", input={"query": "what is KQL"})
+    search_error = SimpleNamespace(
+        type="web_search_tool_result",
+        tool_use_id="srvtoolu_1",
+        content=SimpleNamespace(type="web_search_tool_result_error", error_code="max_uses_exceeded"),
+    )
+    final_call = SimpleNamespace(type="tool_use", name="analyze_fit", input={"insights": []})
+    fake_response = SimpleNamespace(content=[search_call, search_error, final_call], stop_reason="tool_use")
+
+    with patch.object(client._client.messages, "create", return_value=fake_response):
+        tool_input, search_actions = client.call_tool_with_search(
+            system="sys", user="usr", tool_name="analyze_fit", tool_schema={"type": "object"}, tool_description="desc"
+        )
+
+    assert tool_input == {"insights": []}
+    assert search_actions == []
+
+
+def test_call_tool_with_search_raises_when_final_tool_never_called():
+    client = LLMClient(api_key="test-key")
+    fake_response = SimpleNamespace(content=[SimpleNamespace(type="text", text="I'm done.")], stop_reason="end_turn")
+
+    with patch.object(client._client.messages, "create", return_value=fake_response):
+        with pytest.raises(RuntimeError):
+            client.call_tool_with_search(
+                system="sys", user="usr", tool_name="analyze_fit", tool_schema={"type": "object"}, tool_description="desc"
+            )
+
+
+def test_call_tool_with_search_resends_paused_turn_then_returns_final_call():
+    client = LLMClient(api_key="test-key")
+    paused_block = SimpleNamespace(type="server_tool_use", name="web_search", input={"query": "what is KQL"})
+    paused_response = SimpleNamespace(content=[paused_block], stop_reason="pause_turn")
+    final_call = SimpleNamespace(type="tool_use", name="analyze_fit", input={"insights": []})
+    resumed_response = SimpleNamespace(content=[final_call], stop_reason="tool_use")
+
+    with patch.object(
+        client._client.messages, "create", side_effect=[paused_response, resumed_response]
+    ) as mock_create:
+        tool_input, search_actions = client.call_tool_with_search(
+            system="sys", user="usr", tool_name="analyze_fit", tool_schema={"type": "object"}, tool_description="desc"
+        )
+
+    assert tool_input == {"insights": []}
+    assert mock_create.call_count == 2
+    second_call_kwargs = mock_create.call_args_list[1].kwargs
+    assert second_call_kwargs["messages"][-1]["role"] == "assistant"
