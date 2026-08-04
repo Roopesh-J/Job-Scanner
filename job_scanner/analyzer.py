@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from job_scanner.llm_client import LLMClient
-from job_scanner.models import Insight, InsightKind, Posting
+from job_scanner.models import Insight, InsightKind, Posting, SearchAction
 from job_scanner.validation import find_invalid_references
 
 ANALYZE_TOOL_NAME = "analyze_fit"
@@ -34,7 +34,13 @@ SYSTEM_PROMPT = (
     "contradicts, produce a 'gap' insight. Every insight must cite the "
     "requirement or responsibility ids it is based on, using only ids that "
     "appear in the breakdown you were given. Be honest about real gaps, not "
-    "just flattering."
+    "just flattering.\n\n"
+    "If a requirement or responsibility names a specific skill, tool, or "
+    "acronym you are not confident you understand correctly, and getting it "
+    "wrong would change a strength/gap judgment, search the web for it before "
+    "judging that item — at most twice total. If a search errors or returns "
+    "nothing useful, proceed with your best understanding rather than getting "
+    "stuck. Always finish by calling analyze_fit with your final insights."
 )
 
 
@@ -59,11 +65,12 @@ def format_posting_for_prompt(posting: Posting) -> str:
 class AnalysisResult:
     insights: list[Insight]
     dropped_count: int
+    search_actions: list[SearchAction]
 
 
 def analyze_fit(posting: Posting, candidate_text: str, client: LLMClient) -> AnalysisResult:
     user_message = format_posting_for_prompt(posting) + "\n\nCandidate background:\n" + candidate_text
-    raw = client.call_tool(
+    raw, raw_search_actions = client.call_tool_with_search(
         system=SYSTEM_PROMPT,
         user=user_message,
         tool_name=ANALYZE_TOOL_NAME,
@@ -89,4 +96,6 @@ def analyze_fit(posting: Posting, candidate_text: str, client: LLMClient) -> Ana
             )
         )
 
-    return AnalysisResult(insights=insights, dropped_count=dropped_count)
+    search_actions = [SearchAction(**action) for action in raw_search_actions]
+
+    return AnalysisResult(insights=insights, dropped_count=dropped_count, search_actions=search_actions)
