@@ -44,3 +44,13 @@ class Insight(BaseModel):
     text: str
     kind: InsightKind
     supporting_ids: list[str]
+
+
+class SearchResultItem(BaseModel):
+    title: str
+    url: str
+
+
+class SearchAction(BaseModel):
+    query: str
+    results: list[SearchResultItem]

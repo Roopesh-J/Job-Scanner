@@ -1,7 +1,16 @@
 import pytest
 from pydantic import ValidationError
 
-from job_scanner.models import Category, Insight, InsightKind, Posting, Requirement, Responsibility
+from job_scanner.models import (
+    Category,
+    Insight,
+    InsightKind,
+    Posting,
+    Requirement,
+    Responsibility,
+    SearchAction,
+    SearchResultItem,
+)
 
 
 def test_requirement_accepts_valid_category():
@@ -36,3 +45,18 @@ def test_insight_accepts_strength_and_gap_kinds():
     gap = Insight(id="insight-2", text="No Kubernetes experience", kind=InsightKind.GAP, supporting_ids=["req-2"])
     assert strength.kind == InsightKind.STRENGTH
     assert gap.kind == InsightKind.GAP
+
+
+def test_search_action_holds_query_and_results():
+    action = SearchAction(
+        query="what is KQL",
+        results=[SearchResultItem(title="Kusto Query Language - Microsoft Docs", url="https://example.com/kql")],
+    )
+    assert action.query == "what is KQL"
+    assert action.results[0].title == "Kusto Query Language - Microsoft Docs"
+    assert action.results[0].url == "https://example.com/kql"
+
+
+def test_search_action_accepts_empty_results():
+    action = SearchAction(query="some obscure term", results=[])
+    assert action.results == []
