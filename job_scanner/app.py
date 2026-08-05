@@ -1,10 +1,13 @@
 import streamlit as st
+from dotenv import load_dotenv
 
 from job_scanner.analyzer import analyze_fit
 from job_scanner.extractor import extract_posting, is_url
 from job_scanner.llm_client import LLMClient
 from job_scanner.models import InsightKind
 from job_scanner.ui_helpers import build_id_lookup, format_search_actions, format_sources
+
+load_dotenv()
 
 st.set_page_config(page_title="Job Scanner", layout="wide")
 st.title("Job Scanner")
