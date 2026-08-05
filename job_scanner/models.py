@@ -32,6 +32,7 @@ class Posting(BaseModel):
     company: str
     location: str
     seniority: str
+    salary: str | None = None
     responsibilities: list[Responsibility]
     requirements: list[Requirement]
 

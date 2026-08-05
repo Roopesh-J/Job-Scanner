@@ -25,7 +25,10 @@ if st.button("Analyze", disabled=not can_analyze):
         id_lookup = build_id_lookup(posting)
 
         st.subheader(f"{posting.title} — {posting.company}")
-        st.caption(f"{posting.location} · {posting.seniority}")
+        location_line = f"{posting.location} · {posting.seniority}"
+        if posting.salary:
+            location_line += f" · {posting.salary}"
+        st.caption(location_line)
 
         if extraction.dropped_ids:
             st.warning(

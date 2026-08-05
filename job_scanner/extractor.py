@@ -13,6 +13,11 @@ EXTRACT_TOOL_SCHEMA = {
         "company": {"type": "string"},
         "location": {"type": "string"},
         "seniority": {"type": "string"},
+        "salary": {
+            "type": "string",
+            "description": "The salary or compensation range exactly as stated in the posting, copied "
+            "verbatim. Use an empty string if the posting does not mention salary or compensation.",
+        },
         "responsibilities": {
             "type": "array",
             "items": {
@@ -43,14 +48,16 @@ EXTRACT_TOOL_SCHEMA = {
             },
         },
     },
-    "required": ["title", "company", "location", "seniority", "responsibilities", "requirements"],
+    "required": ["title", "company", "location", "seniority", "salary", "responsibilities", "requirements"],
 }
 
 SYSTEM_PROMPT = (
     "You are a precise job posting analyst. Extract only what the posting literally "
     "states. Do not infer, assume, or add anything not directly supported by the "
     "text. For every requirement and responsibility, copy an exact verbatim "
-    "substring from the posting into source_quote."
+    "substring from the posting into source_quote. For salary, copy the figure or "
+    "range exactly as written in the posting, or use an empty string if none is "
+    "mentioned — never estimate or infer a salary that isn't stated."
 )
 
 
@@ -83,11 +90,16 @@ def extract_posting(posting_text: str, client: LLMClient) -> ExtractionResult:
         for i, r in enumerate(raw["requirements"])
     ]
 
+    salary = raw["salary"] or None
+    if salary is not None and salary not in posting_text:
+        salary = None
+
     posting = Posting(
         title=raw["title"],
         company=raw["company"],
         location=raw["location"],
         seniority=raw["seniority"],
+        salary=salary,
         responsibilities=responsibilities,
         requirements=requirements,
     )
