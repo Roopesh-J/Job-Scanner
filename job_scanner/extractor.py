@@ -67,6 +67,10 @@ class ExtractionResult:
     dropped_ids: list[str]
 
 
+def is_url(text: str) -> bool:
+    return text.strip().lower().startswith(("http://", "https://"))
+
+
 def extract_posting(posting_text: str, client: LLMClient) -> ExtractionResult:
     raw = client.call_tool(
         system=SYSTEM_PROMPT,

@@ -115,3 +115,43 @@ def test_call_tool_with_search_raises_when_final_tool_never_called():
             client.call_tool_with_search(
                 system="sys", user="usr", tool_name="analyze_fit", tool_schema={"type": "object"}, tool_description="desc"
             )
+
+
+def test_fetch_url_text_returns_page_content():
+    client = LLMClient(api_key="test-key")
+    source = SimpleNamespace(type="text", media_type="text/plain", data="Full page text here.")
+    document = SimpleNamespace(type="document", source=source, title="Example Page")
+    fetch_result = SimpleNamespace(type="web_fetch_result", url="https://example.com/job", content=document)
+    result_block = SimpleNamespace(type="web_fetch_tool_result", tool_use_id="srvtoolu_1", content=fetch_result)
+    fake_response = SimpleNamespace(content=[result_block], stop_reason="tool_use")
+
+    with patch.object(client._client.messages, "create", return_value=fake_response) as mock_create:
+        text = client.fetch_url_text("https://example.com/job")
+
+    assert text == "Full page text here."
+    _, kwargs = mock_create.call_args
+    assert kwargs["tool_choice"] == {"type": "tool", "name": "web_fetch"}
+
+
+def test_fetch_url_text_raises_clear_error_when_fetch_fails():
+    client = LLMClient(api_key="test-key")
+    error_content = SimpleNamespace(type="web_fetch_tool_result_error", error_code="url_not_accessible")
+    result_block = SimpleNamespace(type="web_fetch_tool_result", tool_use_id="srvtoolu_1", content=error_content)
+    fake_response = SimpleNamespace(content=[result_block], stop_reason="tool_use")
+
+    with patch.object(client._client.messages, "create", return_value=fake_response):
+        with pytest.raises(RuntimeError, match="url_not_accessible"):
+            client.fetch_url_text("https://example.com/job")
+
+
+def test_fetch_url_text_raises_when_content_is_not_text():
+    client = LLMClient(api_key="test-key")
+    source = SimpleNamespace(type="base64", media_type="application/pdf", data="...")
+    document = SimpleNamespace(type="document", source=source, title="Example Page")
+    fetch_result = SimpleNamespace(type="web_fetch_result", url="https://example.com/job", content=document)
+    result_block = SimpleNamespace(type="web_fetch_tool_result", tool_use_id="srvtoolu_1", content=fetch_result)
+    fake_response = SimpleNamespace(content=[result_block], stop_reason="tool_use")
+
+    with patch.object(client._client.messages, "create", return_value=fake_response):
+        with pytest.raises(RuntimeError):
+            client.fetch_url_text("https://example.com/job")

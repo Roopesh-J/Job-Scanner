@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from job_scanner.extractor import extract_posting
+from job_scanner.extractor import extract_posting, is_url
 from job_scanner.models import Category
 
 POSTING_TEXT = (
@@ -74,3 +74,9 @@ def test_extract_posting_sets_salary_to_none_when_not_mentioned():
     result = extract_posting(POSTING_TEXT, client)
 
     assert result.posting.salary is None
+
+
+def test_is_url_distinguishes_urls_from_pasted_text():
+    assert is_url("https://example.com/job") is True
+    assert is_url("http://example.com/job") is True
+    assert is_url("We are looking for a Senior Engineer...") is False

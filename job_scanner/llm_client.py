@@ -86,3 +86,23 @@ class LLMClient:
             raise RuntimeError(f"Model response did not include a call to tool '{tool_name}'")
 
         raise RuntimeError(f"Model response did not include a call to tool '{tool_name}' after retrying a paused turn")
+
+    def fetch_url_text(self, url: str) -> str:
+        response = self._client.messages.create(
+            model=self.model,
+            max_tokens=8192,
+            messages=[{"role": "user", "content": f"Fetch the content at {url}"}],
+            tools=[{"type": "web_fetch_20250910", "name": "web_fetch", "max_content_tokens": 50000}],
+            tool_choice={"type": "tool", "name": "web_fetch"},
+        )
+        for block in response.content:
+            if block.type != "web_fetch_tool_result":
+                continue
+            result = block.content
+            if getattr(result, "type", None) == "web_fetch_tool_result_error":
+                raise RuntimeError(f"Could not fetch this URL ({result.error_code}).")
+            source = result.content.source
+            if getattr(source, "type", None) != "text":
+                raise RuntimeError("This URL didn't return readable text content.")
+            return source.data
+        raise RuntimeError("Could not fetch content from this URL.")
