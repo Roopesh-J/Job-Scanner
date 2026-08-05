@@ -31,15 +31,15 @@ def test_format_sources_returns_empty_string_for_no_matches():
 def test_format_search_actions_lists_query_and_result_titles():
     actions = [
         SearchAction(
-            query="what is KQL",
+            query="example query",
             results=[
-                SearchResultItem(title="Kusto Query Language - Microsoft Docs", url="https://example.com/kql"),
-                SearchResultItem(title="KQL Tutorial", url="https://example.com/kql-tutorial"),
+                SearchResultItem(title="First Result", url="https://example.com/first"),
+                SearchResultItem(title="Second Result", url="https://example.com/second"),
             ],
         )
     ]
     lines = format_search_actions(actions)
-    assert lines == ['Searched “what is KQL” — found: Kusto Query Language - Microsoft Docs, KQL Tutorial']
+    assert lines == ['Searched “example query” — found: First Result, Second Result']
 
 
 def test_format_search_actions_handles_no_results():

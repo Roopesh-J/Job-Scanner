@@ -65,9 +65,9 @@ def test_call_tool_with_search_returns_tool_input_when_no_search_happens():
 
 def test_call_tool_with_search_captures_search_trace_before_final_tool_call():
     client = LLMClient(api_key="test-key")
-    search_call = SimpleNamespace(type="server_tool_use", name="web_search", input={"query": "what is KQL"})
+    search_call = SimpleNamespace(type="server_tool_use", name="web_search", input={"query": "example query"})
     search_result_item = SimpleNamespace(
-        type="web_search_result", title="Kusto Query Language", url="https://example.com/kql"
+        type="web_search_result", title="Example Result", url="https://example.com/result"
     )
     search_result = SimpleNamespace(
         type="web_search_tool_result", tool_use_id="srvtoolu_1", content=[search_result_item]
@@ -82,7 +82,7 @@ def test_call_tool_with_search_captures_search_trace_before_final_tool_call():
 
     assert tool_input == {"insights": []}
     assert search_actions == [
-        {"query": "what is KQL", "results": [{"title": "Kusto Query Language", "url": "https://example.com/kql"}]}
+        {"query": "example query", "results": [{"title": "Example Result", "url": "https://example.com/result"}]}
     ]
 
 

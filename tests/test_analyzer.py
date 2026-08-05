@@ -62,12 +62,12 @@ def test_analyze_fit_includes_search_actions_when_present():
         ]
     }
     raw_search_actions = [
-        {"query": "what is KQL", "results": [{"title": "Kusto Query Language", "url": "https://example.com/kql"}]}
+        {"query": "example query", "results": [{"title": "Example Result", "url": "https://example.com/result"}]}
     ]
     client = _mock_client(raw_output, raw_search_actions)
 
     result = analyze_fit(_posting(), "profile text", client)
 
     assert len(result.search_actions) == 1
-    assert result.search_actions[0].query == "what is KQL"
-    assert result.search_actions[0].results[0].title == "Kusto Query Language"
+    assert result.search_actions[0].query == "example query"
+    assert result.search_actions[0].results[0].title == "Example Result"
