@@ -88,7 +88,7 @@ def test_call_tool_with_search_captures_search_trace_before_final_tool_call():
 
 def test_call_tool_with_search_proceeds_when_search_errors():
     client = LLMClient(api_key="test-key")
-    search_call = SimpleNamespace(type="server_tool_use", name="web_search", input={"query": "what is KQL"})
+    search_call = SimpleNamespace(type="server_tool_use", name="web_search", input={"query": "example query"})
     search_error = SimpleNamespace(
         type="web_search_tool_result",
         tool_use_id="srvtoolu_1",
