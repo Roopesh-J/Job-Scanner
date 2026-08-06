@@ -1,5 +1,5 @@
 from job_scanner.models import Category, Posting, Requirement, Responsibility, SearchAction, SearchResultItem
-from job_scanner.ui_helpers import build_id_lookup, format_search_actions, format_sources
+from job_scanner.ui_helpers import build_id_lookup, format_badge_counts, format_search_actions, format_sources
 
 
 def _posting() -> Posting:
@@ -46,3 +46,15 @@ def test_format_search_actions_handles_no_results():
     actions = [SearchAction(query="some obscure term", results=[])]
     lines = format_search_actions(actions)
     assert lines == ['Searched “some obscure term” — found: no results']
+
+
+def test_format_badge_counts_pluralizes_by_default():
+    assert format_badge_counts(3, 2) == "✓ 3 strengths · ⚠ 2 gaps"
+
+
+def test_format_badge_counts_uses_singular_for_one():
+    assert format_badge_counts(1, 1) == "✓ 1 strength · ⚠ 1 gap"
+
+
+def test_format_badge_counts_handles_zero():
+    assert format_badge_counts(0, 0) == "✓ 0 strengths · ⚠ 0 gaps"
