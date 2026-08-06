@@ -11,10 +11,6 @@ The core idea: no plausible-sounding summaries. Every insight has to point at re
 
 If a piece of extracted or generated data can't be verified against the source text, it's dropped rather than shown — with a visible note, not silently.
 
-## Status
-
-This is Phase 0: a working local MVP, not the full vision. Evaluation tooling (measuring how accurate the extraction actually is, with real numbers), batch processing, and a hosted deployment are planned for later phases.
-
 ## Running it locally
 
 ```bash
@@ -25,6 +21,17 @@ pip install -e ".[dev]"
 export ANTHROPIC_API_KEY=your-key-here
 streamlit run job_scanner/app.py
 ```
+
+## Deploying (Streamlit Community Cloud)
+
+1. On [share.streamlit.io](https://share.streamlit.io), connect this GitHub repo and set the main file path to `job_scanner/app.py`.
+2. In the app's Secrets panel, add:
+   ```toml
+   ANTHROPIC_API_KEY = "your-key-here"
+   ```
+3. Deploy. `requirements.txt` (`-e .`) installs the package and its dependencies from `pyproject.toml`.
+
+The app has no login/passcode and no request cap — anyone with the URL can trigger real API calls against the configured key.
 
 ## Tech stack
 
