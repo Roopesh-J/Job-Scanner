@@ -14,6 +14,12 @@ class InsightKind(str, Enum):
     GAP = "gap"
 
 
+class Verdict(str, Enum):
+    STRONG_MATCH = "strong_match"
+    STRETCH = "stretch"
+    WEAK_FIT = "weak_fit"
+
+
 class Responsibility(BaseModel):
     id: str
     text: str
@@ -30,8 +36,8 @@ class Requirement(BaseModel):
 class Posting(BaseModel):
     title: str
     company: str
-    location: str
-    seniority: str
+    location: str | None = None
+    seniority: str | None = None
     salary: str | None = None
     responsibilities: list[Responsibility]
     requirements: list[Requirement]

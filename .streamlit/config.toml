@@ -1,11 +1,7 @@
 [theme]
-base = "light"
-primaryColor = "#B5502E"
-backgroundColor = "#FAF7F2"
-secondaryBackgroundColor = "#F0E9DC"
-textColor = "#211D18"
-borderColor = "#E2D8C4"
-font = "sans-serif"
-headingFont = "Source Serif 4:https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@500;600;700&display=swap"
-baseRadius = "small"
-showWidgetBorder = true
+base = "dark"
+primaryColor = "#6C9CE8"
+backgroundColor = "#1E2227"
+secondaryBackgroundColor = "#262B31"
+textColor = "#EDEBE3"
+font = "sans serif"

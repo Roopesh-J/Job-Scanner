@@ -1,4 +1,4 @@
-# Job Scanner
+# JobScan
 
 Paste a job posting and your background (resume, notes, anything — plain text), and get back a structured, traceable read on the fit: what the posting actually requires vs. prefers, and honest strengths and gaps against your background — each claim linked back to the exact line in the posting that supports it.
 

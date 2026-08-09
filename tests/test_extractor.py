@@ -76,6 +76,50 @@ def test_extract_posting_sets_salary_to_none_when_not_mentioned():
     assert result.posting.salary is None
 
 
+def test_extract_posting_trims_a_full_sentence_salary_down_to_the_figures():
+    posting_text_with_sentence_salary = (
+        "We need someone with 5+ years of Python and ownership of our public API. "
+        "The annual salary for this position is between $65,000 and $80,000 USD "
+        "depending on experience."
+    )
+    raw_with_sentence_salary = {
+        **RAW_TOOL_OUTPUT,
+        "salary": "The annual salary for this position is between $65,000 and $80,000 USD depending on experience.",
+    }
+    client = _mock_client(raw_with_sentence_salary)
+
+    result = extract_posting(posting_text_with_sentence_salary, client)
+
+    assert result.posting.salary == "$65,000 and $80,000"
+
+
+def test_extract_posting_treats_unknown_placeholder_location_as_none():
+    raw_with_placeholder = {**RAW_TOOL_OUTPUT, "location": "<UNKNOWN>"}
+    client = _mock_client(raw_with_placeholder)
+
+    result = extract_posting(POSTING_TEXT, client)
+
+    assert result.posting.location is None
+
+
+def test_extract_posting_treats_empty_seniority_as_none():
+    raw_without_seniority = {**RAW_TOOL_OUTPUT, "seniority": ""}
+    client = _mock_client(raw_without_seniority)
+
+    result = extract_posting(POSTING_TEXT, client)
+
+    assert result.posting.seniority is None
+
+
+def test_extract_posting_keeps_real_location_and_seniority():
+    client = _mock_client(RAW_TOOL_OUTPUT)
+
+    result = extract_posting(POSTING_TEXT, client)
+
+    assert result.posting.location == "Remote"
+    assert result.posting.seniority == "Senior"
+
+
 def test_is_url_distinguishes_urls_from_pasted_text():
     assert is_url("https://example.com/job") is True
     assert is_url("http://example.com/job") is True
