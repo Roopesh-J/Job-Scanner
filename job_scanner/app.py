@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from job_scanner.analyzer import analyze_fit
 from job_scanner.extractor import extract_posting, is_url
 from job_scanner.llm_client import LLMClient
-from job_scanner.models import Category, InsightKind
+from job_scanner.models import Category, InsightKind, Verdict
 from job_scanner.ui_helpers import (
     CITATION_SCROLL_JS,
     GLOBAL_CSS,
@@ -154,23 +154,21 @@ def render_results_stage() -> None:
         st.info("No postings could be analyzed. Go back and try again.")
         return
 
-    total_strengths = 0
-    total_gaps = 0
-    for r in results:
-        s, g = fit_counts(r["analysis"].insights)
-        total_strengths += s
-        total_gaps += g
+    strong_count = sum(1 for r in results if r["analysis"].verdict == Verdict.STRONG_MATCH)
+    stretch_count = sum(1 for r in results if r["analysis"].verdict == Verdict.STRETCH)
+    weak_count = sum(1 for r in results if r["analysis"].verdict == Verdict.WEAK_FIT)
 
     st.markdown(
         f"""
         <div class="results-intro">
           <h2>Results ranked by fit</h2>
           <div class="stat-row">
-            <div class="stat-tile strengths"><span class="num">{total_strengths}</span><span class="cap">Strengths surfaced</span></div>
-            <div class="stat-tile gaps"><span class="num">{total_gaps}</span><span class="cap">Gaps flagged</span></div>
-            <div class="stat-tile"><span class="num">{len(results)}</span><span class="cap">Postings analyzed</span></div>
+            <div class="stat-tile strong"><span class="num">{strong_count}</span><span class="cap">Strong matches</span></div>
+            <div class="stat-tile stretch"><span class="num">{stretch_count}</span><span class="cap">Stretches</span></div>
+            <div class="stat-tile weak"><span class="num">{weak_count}</span><span class="cap">Weak fits</span></div>
           </div>
         </div>
+        <hr class="divider-rule">
         """,
         unsafe_allow_html=True,
     )

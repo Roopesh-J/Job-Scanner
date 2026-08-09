@@ -228,7 +228,7 @@ div[class*="st-key-results_topbar"] {{ margin-bottom: -35px; }}
 .how-steps li strong {{ color: var(--ink); font-weight: 700; display: block; margin-bottom: 0.15rem; }}
 
 div[class*="st-key-analyze_btn"] button {{
-    font-family: 'Public Sans', sans-serif; font-weight: 700; font-size: 1.15rem; letter-spacing: 0.01em;
+    font-family: 'Public Sans', sans-serif; font-weight: 700; font-size: 1.25rem; letter-spacing: 0.01em;
     background: #FFFFFF; color: var(--ground); border: none; padding: 1rem 2rem;
 }}
 div[class*="st-key-analyze_btn"] button:hover:not(:disabled) {{ background: var(--verified); color: var(--ground); }}
@@ -250,7 +250,7 @@ div[class*="st-key-remove_"] button {{
 div[class*="st-key-remove_"] button:hover {{ color: var(--gap); }}
 div[class*="st-key-back_btn"] {{ display: flex; justify-content: flex-end; }}
 div[class*="st-key-back_btn"] button {{
-    font-family: 'Public Sans', sans-serif; font-weight: 700; font-size: 1.05rem; letter-spacing: 0.01em;
+    font-family: 'Public Sans', sans-serif; font-weight: 700; font-size: 1.25rem; letter-spacing: 0.01em;
     background: #FFFFFF; color: var(--ground); border: none; padding: 0.9rem 1.8rem; margin-left: auto;
 }}
 div[class*="st-key-back_btn"] button:hover {{ background: var(--verified); color: var(--ground); }}
@@ -260,10 +260,11 @@ div[class*="st-key-back_btn"] button:hover {{ background: var(--verified); color
 
 .results-intro {{ padding: 0.5rem 0 1.75rem; max-width: 62ch; }}
 .results-intro h2 {{ font-size: clamp(1.9rem, 3.2vw, 2.5rem); color: var(--ink); margin: 0.5rem 0 1rem; line-height: 1.12; }}
-.stat-row {{ display: flex; gap: 2.25rem; margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }}
+.stat-row {{ display: flex; gap: 2.25rem; margin-top: 1.5rem; }}
 .stat-tile .num {{ font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 1.85rem; font-variant-numeric: tabular-nums; line-height: 1; }}
-.stat-tile.strengths .num {{ color: var(--strength); }}
-.stat-tile.gaps .num {{ color: var(--gap); }}
+.stat-tile.strong .num {{ color: var(--strength); }}
+.stat-tile.stretch .num {{ color: var(--verified); }}
+.stat-tile.weak .num {{ color: var(--gap); }}
 .stat-tile .cap {{ display: block; margin-top: 0.35rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
     letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); }}
 
@@ -274,14 +275,10 @@ div[class*="st-key-posting_tabs"] div[data-testid="stColumn"] {{
     border-right: 1px solid var(--line); display: flex; flex-direction: column;
 }}
 div[class*="st-key-posting_tabs"] div[data-testid="stColumn"]:last-child {{ border-right: none; }}
-div[class*="st-key-posting_tabs"] div[data-testid="stColumn"] div[data-testid="stVerticalBlock"] {{
+div[class*="st-key-posting_tabs"] div[data-testid="stColumn"] div {{
     height: 100%;
 }}
-div[class*="st-key-posting_tabs"] div[data-testid="stColumn"] div[data-testid="stVerticalBlockBorderWrapper"] {{
-    height: 100%;
-}}
-div[class*="st-key-tab_wrap_"] {{ position: relative; height: 100%; }}
-div[class*="st-key-tab_wrap_"] div[data-testid="stElementContainer"] {{ height: 100%; }}
+div[class*="st-key-tab_wrap_"] {{ position: relative; }}
 div[class*="st-key-tab_wrap_"] div[class*="st-key-tab_btn_"] {{
     position: absolute !important; inset: 0; z-index: 2; width: 100% !important; height: 100% !important;
 }}
@@ -305,24 +302,24 @@ div[class*="st-key-tab_wrap_"]:has(button:hover) .tab-visual {{ background: var(
 div[class*="st-key-tab_wrap_"]:has(button:focus-visible) .tab-visual {{ outline: 2px solid var(--focus); outline-offset: -2px; }}
 
 .tab-num {{
-    font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 1.7rem; color: var(--ink-faint);
-    display: flex; align-items: center; justify-content: center; min-width: 3rem; padding: 0 0.5rem;
+    font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 2.2rem; color: var(--ink-faint);
+    display: flex; align-items: center; justify-content: center; min-width: 3.75rem; padding: 0 1rem;
     border-right: 1px solid var(--line);
 }}
 .tab-visual.active .tab-num {{ color: var(--verified); }}
-.tab-body {{ flex: 1; padding: 0.85rem 1.1rem; display: flex; flex-direction: column; justify-content: center; gap: 0.3rem; min-width: 0; }}
+.tab-body {{ flex: 1; padding: 1.1rem 1.4rem; display: flex; flex-direction: column; justify-content: center; gap: 0.4rem; min-width: 0; }}
 .tab-title {{
-    font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 1.1rem; color: var(--ink);
+    font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 1.25rem; color: var(--ink);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }}
-.tab-company {{ font-family: 'IBM Plex Mono', monospace; font-size: 0.82rem; color: var(--ink-soft); }}
-.tab-counts {{ display: flex; gap: 0.5rem; margin-top: 0.2rem; }}
+.tab-company {{ font-family: 'IBM Plex Mono', monospace; font-size: 0.92rem; color: var(--ink-soft); }}
+.tab-counts {{ display: flex; gap: 1rem; margin-top: 0.3rem; }}
 .count-pill {{
-    font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.02em;
-    padding: 0.15rem 0.55rem; border-radius: 999px; white-space: nowrap;
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.02em;
+    white-space: nowrap;
 }}
-.count-pill.strength {{ background: rgba(87, 185, 140, 0.15); color: var(--strength); }}
-.count-pill.gap {{ background: rgba(217, 119, 87, 0.15); color: var(--gap); }}
+.count-pill.strength {{ color: var(--strength); }}
+.count-pill.gap {{ color: var(--gap); }}
 
 .title-row {{ display: flex; align-items: baseline; justify-content: flex-start; flex-wrap: wrap; margin-bottom: 0.15rem; }}
 .detail-head h2 {{ color: var(--ink); font-size: 2.3rem; margin: 0; }}
@@ -341,7 +338,7 @@ div[class*="st-key-tab_wrap_"]:has(button:focus-visible) .tab-visual {{ outline:
 .insight-group.strengths h4 {{ background: var(--strength); color: var(--ground); }}
 .insight-group.gaps h4 {{ background: var(--gap); color: var(--ground); }}
 .insight-list {{ list-style: none; margin: 0; padding: 0; }}
-.insight-list .insight-card {{ font-size: 1.05rem; color: var(--ink); padding: 0.65rem 0.6rem; margin: 0 -0.6rem;
+.insight-list .insight-card {{ font-size: 1.05rem; color: var(--ink); padding: 0.6rem 0.6rem; margin: 0 -0.6rem;
     border-bottom: 1px solid rgba(237, 235, 227, 0.08); line-height: 1.65; }}
 .insight-card:last-child {{ border-bottom: none; }}
 .insight-card.muted {{ color: var(--ink-faint); }}
