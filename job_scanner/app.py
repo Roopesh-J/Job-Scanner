@@ -15,13 +15,12 @@ from job_scanner.ui_helpers import (
     HOW_TO_HTML,
     build_id_lookup,
     build_meta_line,
+    build_tab_label,
     cite_targets,
     citation_hover_css,
-    fit_counts,
     format_search_actions,
     highlight_quotes_with_ids,
     ranking_key,
-    render_tab_visual,
     verdict_label,
 )
 
@@ -163,33 +162,31 @@ def render_results_stage() -> None:
         <div class="results-intro">
           <h2>Results ranked by fit</h2>
           <div class="stat-row">
-            <div class="stat-tile strong"><span class="num">{strong_count}</span><span class="cap">Strong matches</span></div>
+            <div class="stat-tile strong"><span class="num">{strong_count}</span><span class="cap">Strong fits</span></div>
             <div class="stat-tile stretch"><span class="num">{stretch_count}</span><span class="cap">Stretches</span></div>
             <div class="stat-tile weak"><span class="num">{weak_count}</span><span class="cap">Weak fits</span></div>
+            <div class="stat-tile"><span class="num">{len(results)}</span><span class="cap">Postings analyzed</span></div>
           </div>
         </div>
-        <hr class="divider-rule">
         """,
         unsafe_allow_html=True,
     )
 
     with st.container(key="posting_tabs"):
-        tab_cols = st.columns(len(results))
+        tab_cols = st.columns(len(results), gap="small")
         for i, (col, r) in enumerate(zip(tab_cols, results)):
             posting = r["extraction"].posting
-            s, g = fit_counts(r["analysis"].insights)
-            strength_word = "strength" if s == 1 else "strengths"
-            gap_word = "gap" if g == 1 else "gaps"
+            verdict = r["analysis"].verdict
             is_active = i == st.session_state.active_tab
+            label = build_tab_label(posting)
+            state = "active" if is_active else "idle"
+            key = f"tab_{state}_{verdict.value}_{i}"
             with col:
-                with st.container(key=f"tab_wrap_{i}"):
-                    st.markdown(
-                        render_tab_visual(i + 1, posting, s, strength_word, g, gap_word, is_active),
-                        unsafe_allow_html=True,
-                    )
-                    if st.button(f"View {posting.title} at {posting.company}", key=f"tab_btn_{i}"):
-                        st.session_state.active_tab = i
-                        st.rerun()
+                if st.button(label, key=key):
+                    st.session_state.active_tab = i
+                    st.rerun()
+
+    st.markdown('<hr class="divider-rule ribbon-divider">', unsafe_allow_html=True)
 
     active = results[st.session_state.active_tab]
     render_posting_detail(active)
@@ -233,8 +230,7 @@ def render_posting_detail(result: dict) -> None:
           </div>
           <div class="posting-meta">{build_meta_line(posting)}</div>
         </div>
-        <p class="posting-summary">{html.escape(analysis.summary)}</p>
-        <hr class="divider-rule">
+        <p class="posting-summary"><strong>Summary:</strong> {html.escape(analysis.summary)}</p>
         """,
         unsafe_allow_html=True,
     )

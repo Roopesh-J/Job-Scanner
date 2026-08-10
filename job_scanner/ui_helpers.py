@@ -12,9 +12,10 @@ def _safe_id(raw_id: str) -> str:
 STRENGTH_COLOR = "#57B98C"
 GAP_COLOR = "#D97757"
 VERIFIED_COLOR = "#6C9CE8"
+STRETCH_COLOR = "#E0B23C"
 
 _VERDICT_LABELS = {
-    Verdict.STRONG_MATCH: "Strong match",
+    Verdict.STRONG_MATCH: "Strong fit",
     Verdict.STRETCH: "Stretch",
     Verdict.WEAK_FIT: "Weak fit",
 }
@@ -124,21 +125,14 @@ def build_meta_line(posting: Posting) -> str:
     return "".join(f"<span>{html.escape(p)}</span>" for p in parts)
 
 
-def render_tab_visual(
-    rank: int, posting: Posting, strengths: int, strength_word: str, gaps: int, gap_word: str, is_active: bool
-) -> str:
-    active_class = " active" if is_active else ""
-    return (
-        f'<div class="tab-visual{active_class}">'
-        f'<div class="tab-num">{rank}</div>'
-        f'<div class="tab-body">'
-        f'<div class="tab-title">{html.escape(posting.title)}</div>'
-        f'<div class="tab-company">{html.escape(posting.company)}</div>'
-        f'<div class="tab-counts">'
-        f'<span class="count-pill strength">{strengths} {strength_word}</span>'
-        f'<span class="count-pill gap">{gaps} {gap_word}</span>'
-        f"</div></div></div>"
-    )
+def _clean_label_text(text: str) -> str:
+    return text.replace("[", "(").replace("]", ")").replace("*", "").replace("\n", " ")
+
+
+def build_tab_label(posting: Posting) -> str:
+    title = _clean_label_text(posting.title)
+    company = _clean_label_text(posting.company)
+    return f"**{title}**:blue[{company}]"
 
 
 def format_search_actions(search_actions: list[SearchAction]) -> list[str]:
@@ -170,6 +164,7 @@ GLOBAL_CSS = f"""
     --verified: {VERIFIED_COLOR};
     --strength: {STRENGTH_COLOR};
     --gap: {GAP_COLOR};
+    --stretch: {STRETCH_COLOR};
     --focus: {VERIFIED_COLOR};
 }}
 
@@ -194,6 +189,7 @@ div[class*="st-key-results_topbar"] {{ margin-bottom: -35px; }}
 .field-label {{ font-family: 'Public Sans', sans-serif; font-weight: 600; font-size: 1.15rem; color: var(--ink); margin-bottom: 0.5rem; }}
 
 .divider-rule {{ border: none; border-top: 1px solid var(--line); margin: 1.5rem 0; }}
+.ribbon-divider {{ margin: 0.35rem 0 !important; }}
 
 .hero {{ display: flex; gap: 2.75rem; align-items: center; flex-wrap: wrap; padding: 0.5rem 0 1.5rem; }}
 .hero-copy {{ flex: 0.78 1 380px; }}
@@ -228,8 +224,8 @@ div[class*="st-key-results_topbar"] {{ margin-bottom: -35px; }}
 .how-steps li strong {{ color: var(--ink); font-weight: 700; display: block; margin-bottom: 0.15rem; }}
 
 div[class*="st-key-analyze_btn"] button {{
-    font-family: 'Public Sans', sans-serif; font-weight: 700; font-size: 1.25rem; letter-spacing: 0.01em;
-    background: #FFFFFF; color: var(--ground); border: none; padding: 1rem 2rem;
+    font-family: 'Public Sans', sans-serif; font-weight: 700; font-size: 1.4rem; letter-spacing: 0.01em;
+    background: #FFFFFF; color: var(--ground); border: none; padding: 1.2rem 2.4rem;
 }}
 div[class*="st-key-analyze_btn"] button:hover:not(:disabled) {{ background: var(--verified); color: var(--ground); }}
 div[class*="st-key-analyze_btn"] button:disabled {{
@@ -248,10 +244,10 @@ div[class*="st-key-remove_"] button {{
     background: none; color: var(--ink-faint); border: none; font-size: 1.3rem; padding: 0.15rem 0.5rem;
 }}
 div[class*="st-key-remove_"] button:hover {{ color: var(--gap); }}
-div[class*="st-key-back_btn"] {{ display: flex; justify-content: flex-end; }}
+div[class*="st-key-back_btn"] {{ display: flex; justify-content: flex-end; width: 100%; }}
 div[class*="st-key-back_btn"] button {{
-    font-family: 'Public Sans', sans-serif; font-weight: 700; font-size: 1.25rem; letter-spacing: 0.01em;
-    background: #FFFFFF; color: var(--ground); border: none; padding: 0.9rem 1.8rem; margin-left: auto;
+    font-family: 'Public Sans', sans-serif; font-weight: 700; font-size: 1.4rem; letter-spacing: 0.01em;
+    background: #FFFFFF; color: var(--ground); border: none; padding: 1.15rem 2.2rem; margin-left: auto;
 }}
 div[class*="st-key-back_btn"] button:hover {{ background: var(--verified); color: var(--ground); }}
 
@@ -263,73 +259,59 @@ div[class*="st-key-back_btn"] button:hover {{ background: var(--verified); color
 .stat-row {{ display: flex; gap: 2.25rem; margin-top: 1.5rem; }}
 .stat-tile .num {{ font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 1.85rem; font-variant-numeric: tabular-nums; line-height: 1; }}
 .stat-tile.strong .num {{ color: var(--strength); }}
-.stat-tile.stretch .num {{ color: var(--verified); }}
+.stat-tile.stretch .num {{ color: var(--stretch); }}
 .stat-tile.weak .num {{ color: var(--gap); }}
 .stat-tile .cap {{ display: block; margin-top: 0.35rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
     letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); }}
 
+div[class*="st-key-posting_tabs"] {{ margin-bottom: 0.5rem; }}
 div[class*="st-key-posting_tabs"] div[data-testid="stHorizontalBlock"] {{
-    background: var(--panel); border: 1px solid var(--line); margin-bottom: 2rem; align-items: stretch;
+    flex-wrap: wrap; justify-content: flex-start; gap: 0.85rem;
 }}
 div[class*="st-key-posting_tabs"] div[data-testid="stColumn"] {{
-    border-right: 1px solid var(--line); display: flex; flex-direction: column;
+    flex: 0 0 auto !important; width: auto !important;
 }}
-div[class*="st-key-posting_tabs"] div[data-testid="stColumn"]:last-child {{ border-right: none; }}
-div[class*="st-key-posting_tabs"] div[data-testid="stColumn"] div {{
-    height: 100%;
-}}
-div[class*="st-key-tab_wrap_"] {{ position: relative; }}
-div[class*="st-key-tab_wrap_"] div[class*="st-key-tab_btn_"] {{
-    position: absolute !important; inset: 0; z-index: 2; width: 100% !important; height: 100% !important;
-}}
-div[class*="st-key-tab_wrap_"] div[class*="st-key-tab_btn_"] div[data-testid="stButton"] {{
-    width: 100%; height: 100%;
-}}
-div[class*="st-key-tab_wrap_"] div[class*="st-key-tab_btn_"] button {{
-    width: 100% !important; height: 100% !important; padding: 0; margin: 0; border: none; background: none; cursor: pointer;
-}}
-div[class*="st-key-tab_wrap_"] div[class*="st-key-tab_btn_"] button p {{
-    font-size: 0; line-height: 0;
-}}
-div[class*="st-key-tab_wrap_"] div[class*="st-key-tab_btn_"] button:focus-visible {{ outline: none; }}
 
-.tab-visual {{
-    display: flex; align-items: stretch; height: 100%; border-left: 3px solid transparent;
-    transition: background 0.12s ease;
+/* Title and company are each forced onto a single line (no wrap) and the chip's
+   width auto-fits whichever is longer — since every chip has the exact same 3-row
+   shape, they line up naturally without needing a height hack. overflow:hidden on
+   the button is a hard backstop: nothing ever renders outside the chip's border. */
+div[class*="st-key-tab_"] button {{
+    width: fit-content; max-width: 26rem; overflow: hidden;
+    text-align: left; white-space: pre; line-height: 1.45;
+    background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--line);
+    border-radius: 0; padding: 0.9rem 1.15rem;
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; color: var(--ink-soft);
+    transition: border-color 0.12s ease, background 0.12s ease;
 }}
-.tab-visual.active {{ background: var(--panel-hi); border-left-color: var(--verified); }}
-div[class*="st-key-tab_wrap_"]:has(button:hover) .tab-visual {{ background: var(--panel-hi); }}
-div[class*="st-key-tab_wrap_"]:has(button:focus-visible) .tab-visual {{ outline: 2px solid var(--focus); outline-offset: -2px; }}
+div[class*="st-key-tab_"] button strong {{
+    display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    margin-bottom: 0.1rem;
+    font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 1.1rem; color: var(--ink);
+}}
+div[class*="st-key-tab_"] button:hover {{ border-color: var(--ink-soft); }}
+div[class*="st-key-tab_active_"] button {{ background: var(--panel-hi); }}
 
-.tab-num {{
-    font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 2.2rem; color: var(--ink-faint);
-    display: flex; align-items: center; justify-content: center; min-width: 3.75rem; padding: 0 1rem;
-    border-right: 1px solid var(--line);
+div[class*="_strong_match_"] button {{ border-top-color: var(--strength); }}
+div[class*="_stretch_"] button {{ border-top-color: var(--stretch); }}
+div[class*="_weak_fit_"] button {{ border-top-color: var(--gap); }}
+
+/* Company name (:blue[...] in the label) — bigger, plain weight, sits tight under the title. */
+div[class*="st-key-tab_"] button span[style*="rgb(61, 157, 243)"] {{
+    display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    vertical-align: bottom; color: var(--ink-soft) !important;
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.92rem; font-weight: 500;
 }}
-.tab-visual.active .tab-num {{ color: var(--verified); }}
-.tab-body {{ flex: 1; padding: 1.1rem 1.4rem; display: flex; flex-direction: column; justify-content: center; gap: 0.4rem; min-width: 0; }}
-.tab-title {{
-    font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 1.25rem; color: var(--ink);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}}
-.tab-company {{ font-family: 'IBM Plex Mono', monospace; font-size: 0.92rem; color: var(--ink-soft); }}
-.tab-counts {{ display: flex; gap: 1rem; margin-top: 0.3rem; }}
-.count-pill {{
-    font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.02em;
-    white-space: nowrap;
-}}
-.count-pill.strength {{ color: var(--strength); }}
-.count-pill.gap {{ color: var(--gap); }}
 
 .title-row {{ display: flex; align-items: baseline; justify-content: flex-start; flex-wrap: wrap; margin-bottom: 0.15rem; }}
 .detail-head h2 {{ color: var(--ink); font-size: 2.3rem; margin: 0; }}
-.company-name {{ font-family: 'Spectral', Georgia, serif; font-weight: 400; font-size: 2.3rem; color: var(--ink); }}
+.company-name {{ font-family: 'Spectral', Georgia, serif; font-weight: 400; font-size: 2.3rem; color: var(--ink-soft); }}
 .company-name::before {{ content: "·"; margin: 0 0.6rem; color: var(--ink-faint); font-weight: 400; }}
 .posting-meta {{ display: flex; flex-wrap: wrap; align-items: center; font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.92rem; color: var(--ink-soft); gap: 0.4rem 0; padding-top: 0.3rem; margin-bottom: 1.6rem; }}
+    font-size: 0.92rem; color: var(--ink-soft); gap: 0.4rem 0; padding-top: 0.2rem; margin-bottom: 1rem; }}
 .posting-meta span {{ padding-right: 1.1rem; margin-right: 1.1rem; border-right: 1px solid var(--line); }}
 .posting-meta span:last-child {{ padding-right: 0; margin-right: 0; border-right: none; }}
-.posting-summary {{ color: var(--ink); font-size: 1rem; line-height: 1.55; margin-bottom: 0; }}
+.posting-summary {{ color: var(--ink); font-size: 1rem; line-height: 1.55; margin-bottom: 1rem; }}
 
 .insight-cols {{ display: flex; gap: 2.5rem; flex-wrap: wrap; }}
 .insight-group {{ flex: 1 1 260px; }}
@@ -338,7 +320,7 @@ div[class*="st-key-tab_wrap_"]:has(button:focus-visible) .tab-visual {{ outline:
 .insight-group.strengths h4 {{ background: var(--strength); color: var(--ground); }}
 .insight-group.gaps h4 {{ background: var(--gap); color: var(--ground); }}
 .insight-list {{ list-style: none; margin: 0; padding: 0; }}
-.insight-list .insight-card {{ font-size: 1.05rem; color: var(--ink); padding: 0.6rem 0.6rem; margin: 0 -0.6rem;
+.insight-list .insight-card {{ font-size: 1.05rem; color: var(--ink); padding: 0.3rem 0.6rem; margin: 0 -0.6rem;
     border-bottom: 1px solid rgba(237, 235, 227, 0.08); line-height: 1.65; }}
 .insight-card:last-child {{ border-bottom: none; }}
 .insight-card.muted {{ color: var(--ink-faint); }}
@@ -368,7 +350,7 @@ div[data-testid="stExpander"] summary span {{ font-size: 1rem; }}
 .verdict-badge {{ display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; font-weight: 700;
     letter-spacing: 0.06em; text-transform: uppercase; padding: 0.3rem 0.6rem; margin-bottom: 0.8rem; }}
 .verdict-badge.strong_match {{ background: var(--strength); color: var(--ground); }}
-.verdict-badge.stretch {{ background: var(--verified); color: var(--ground); }}
+.verdict-badge.stretch {{ background: var(--stretch); color: var(--ground); }}
 .verdict-badge.weak_fit {{ background: var(--gap); color: var(--ground); }}
 
 @media (max-width: 900px) {{
