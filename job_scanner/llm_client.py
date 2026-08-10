@@ -48,7 +48,7 @@ class LLMClient:
         messages: list[dict[str, Any]] = [{"role": "user", "content": user}]
         search_actions: list[dict[str, Any]] = []
 
-        for _ in range(3):
+        for _ in range(max_searches + 1):
             response = self._client.messages.create(
                 model=self.model,
                 max_tokens=8192,
@@ -80,7 +80,7 @@ class LLMClient:
                     return block.input, search_actions
 
             if response.stop_reason == "pause_turn":
-                messages = [{"role": "user", "content": user}, {"role": "assistant", "content": response.content}]
+                messages.append({"role": "assistant", "content": response.content})
                 continue
 
             raise RuntimeError(f"Model response did not include a call to tool '{tool_name}'")
@@ -95,6 +95,11 @@ class LLMClient:
             tools=[{"type": "web_fetch_20250910", "name": "web_fetch", "max_content_tokens": 50000}],
             tool_choice={"type": "tool", "name": "web_fetch"},
         )
+        if response.stop_reason == "max_tokens":
+            raise RuntimeError(
+                "The fetch was cut off before it finished, likely because the page is unusually long or "
+                "dense. Try pasting the posting text directly instead."
+            )
         for block in response.content:
             if block.type != "web_fetch_tool_result":
                 continue

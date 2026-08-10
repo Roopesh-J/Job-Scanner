@@ -58,6 +58,28 @@ def test_extract_posting_drops_ungrounded_item_but_keeps_the_rest():
     assert result.dropped_ids == ["req-2"]
 
 
+def test_extract_posting_drops_malformed_items_but_keeps_the_rest():
+    malformed_output = {
+        **RAW_TOOL_OUTPUT,
+        "responsibilities": [
+            {"text": "Own the public API", "source_quote": "ownership of our public API"},
+            {"text": "Missing quote field"},
+        ],
+        "requirements": [
+            {"text": "5+ years Python", "category": "required", "source_quote": "5+ years of Python"},
+            {"text": "Bad category", "category": "not-a-real-category", "source_quote": "5+ years of Python"},
+        ],
+    }
+    client = _mock_client(malformed_output)
+
+    result = extract_posting(POSTING_TEXT, client)
+
+    assert len(result.posting.responsibilities) == 1
+    assert result.posting.responsibilities[0].id == "resp-1"
+    assert len(result.posting.requirements) == 1
+    assert result.posting.requirements[0].id == "req-1"
+
+
 def test_extract_posting_drops_fabricated_salary():
     raw_with_bad_salary = {**RAW_TOOL_OUTPUT, "salary": "$999,000 - $1,200,000"}
     client = _mock_client(raw_with_bad_salary)

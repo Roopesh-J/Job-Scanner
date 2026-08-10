@@ -111,6 +111,21 @@ def is_url(text: str) -> bool:
     return text.strip().lower().startswith(("http://", "https://"))
 
 
+_VALID_CATEGORIES = {c.value for c in Category}
+
+
+def _valid_responsibility(item: object) -> bool:
+    return isinstance(item, dict) and all(k in item for k in ("text", "source_quote"))
+
+
+def _valid_requirement(item: object) -> bool:
+    return (
+        isinstance(item, dict)
+        and all(k in item for k in ("text", "category", "source_quote"))
+        and item["category"] in _VALID_CATEGORIES
+    )
+
+
 def extract_posting(posting_text: str, client: LLMClient) -> ExtractionResult:
     raw = client.call_tool(
         system=SYSTEM_PROMPT,
@@ -122,7 +137,7 @@ def extract_posting(posting_text: str, client: LLMClient) -> ExtractionResult:
 
     responsibilities = [
         Responsibility(id=f"resp-{i + 1}", text=r["text"], source_quote=r["source_quote"])
-        for i, r in enumerate(raw["responsibilities"])
+        for i, r in enumerate(r for r in raw["responsibilities"] if _valid_responsibility(r))
     ]
     requirements = [
         Requirement(
@@ -131,7 +146,7 @@ def extract_posting(posting_text: str, client: LLMClient) -> ExtractionResult:
             category=Category(r["category"]),
             source_quote=r["source_quote"],
         )
-        for i, r in enumerate(raw["requirements"])
+        for i, r in enumerate(r for r in raw["requirements"] if _valid_requirement(r))
     ]
 
     salary = _clean_salary(raw["salary"]) if raw["salary"] else None

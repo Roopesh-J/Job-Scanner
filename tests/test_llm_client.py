@@ -106,6 +106,29 @@ def test_call_tool_with_search_proceeds_when_search_errors():
     assert search_actions == []
 
 
+def test_call_tool_with_search_preserves_prior_turns_across_two_pauses():
+    client = LLMClient(api_key="test-key")
+    pause_1 = SimpleNamespace(content=[SimpleNamespace(type="text", text="thinking...")], stop_reason="pause_turn")
+    pause_2 = SimpleNamespace(content=[SimpleNamespace(type="text", text="more thinking...")], stop_reason="pause_turn")
+    final_call = SimpleNamespace(type="tool_use", name="analyze_fit", input={"insights": []})
+    final_response = SimpleNamespace(content=[final_call], stop_reason="tool_use")
+
+    with patch.object(
+        client._client.messages, "create", side_effect=[pause_1, pause_2, final_response]
+    ) as mock_create:
+        tool_input, _ = client.call_tool_with_search(
+            system="sys", user="usr", tool_name="analyze_fit", tool_schema={"type": "object"}, tool_description="desc"
+        )
+
+    assert tool_input == {"insights": []}
+    third_call_messages = mock_create.call_args_list[2].kwargs["messages"]
+    assert third_call_messages == [
+        {"role": "user", "content": "usr"},
+        {"role": "assistant", "content": pause_1.content},
+        {"role": "assistant", "content": pause_2.content},
+    ]
+
+
 def test_call_tool_with_search_raises_when_final_tool_never_called():
     client = LLMClient(api_key="test-key")
     fake_response = SimpleNamespace(content=[SimpleNamespace(type="text", text="I'm done.")], stop_reason="end_turn")
@@ -141,6 +164,15 @@ def test_fetch_url_text_raises_clear_error_when_fetch_fails():
 
     with patch.object(client._client.messages, "create", return_value=fake_response):
         with pytest.raises(RuntimeError, match="url_not_accessible"):
+            client.fetch_url_text("https://example.com/job")
+
+
+def test_fetch_url_text_raises_clear_error_when_response_is_truncated():
+    client = LLMClient(api_key="test-key")
+    fake_response = SimpleNamespace(content=[], stop_reason="max_tokens")
+
+    with patch.object(client._client.messages, "create", return_value=fake_response):
+        with pytest.raises(RuntimeError, match="cut off"):
             client.fetch_url_text("https://example.com/job")
 
 
