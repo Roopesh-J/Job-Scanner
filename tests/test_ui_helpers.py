@@ -1,5 +1,13 @@
-from job_scanner.models import Insight, InsightKind, Verdict
-from job_scanner.ui_helpers import fit_counts, format_salary, highlight_quotes, ranking_key, verdict_label
+from job_scanner.models import Insight, InsightKind, Posting, SearchAction, SearchResultItem, Verdict
+from job_scanner.ui_helpers import (
+    build_tab_label,
+    fit_counts,
+    format_salary,
+    format_search_actions,
+    highlight_quotes_with_ids,
+    ranking_key,
+    verdict_label,
+)
 
 
 def _insight(kind: InsightKind, insight_id: str = "insight-1") -> Insight:
@@ -28,11 +36,49 @@ def test_verdict_label_covers_every_verdict():
     assert verdict_label(Verdict.WEAK_FIT) == "Weak fit"
 
 
-def test_highlight_quotes_escapes_html_special_characters():
-    result = highlight_quotes("Tools & <required>", ["Tools"])
-    assert result == "<mark>Tools</mark> &amp; &lt;required&gt;"
+def test_highlight_quotes_with_ids_escapes_html_special_characters():
+    result = highlight_quotes_with_ids("Tools & <required>", {"req-1": "Tools"})
+    assert result == '<mark data-cite-id="req-1">Tools</mark> &amp; &lt;required&gt;'
+
+
+def test_highlight_quotes_with_ids_keeps_every_id_when_quotes_collide():
+    result = highlight_quotes_with_ids("Uses Python daily.", {"req-1": "Python", "req-2": "Python"})
+    assert result == 'Uses <mark data-cite-id="req-1 req-2">Python</mark> daily.'
 
 
 def test_format_salary_formats_range_and_falls_back_when_unparseable():
     assert format_salary("$45,000 - $135,000") == "$45,000 - $135,000"
     assert format_salary("competitive") == "competitive"
+
+
+def _posting(title: str, company: str) -> Posting:
+    return Posting(title=title, company=company, responsibilities=[], requirements=[])
+
+
+def test_build_tab_label_escapes_markdown_in_bold_title():
+    posting = _posting("Backend `Eng`ineer *II*", "Acme")
+    label = build_tab_label(posting)
+    assert label == r"**Backend \`Eng\`ineer \*II\***`Acme`"
+
+
+def test_build_tab_label_strips_backticks_from_code_company():
+    posting = _posting("Engineer", "Foo`Bar")
+    label = build_tab_label(posting)
+    assert label == "**Engineer**`Foo'Bar`"
+
+
+def test_build_tab_label_replaces_newlines_with_spaces():
+    posting = _posting("Line One\nLine Two", "Acme")
+    label = build_tab_label(posting)
+    assert "\n" not in label
+
+
+def test_format_search_actions_escapes_markdown_in_query_and_titles():
+    actions = [
+        SearchAction(
+            query="What is *args?",
+            results=[SearchResultItem(title="Guide to *args and **kwargs", url="https://example.com")],
+        )
+    ]
+    lines = format_search_actions(actions)
+    assert lines == ["Searched “What is \\*args?” — found: Guide to \\*args and \\*\\*kwargs"]

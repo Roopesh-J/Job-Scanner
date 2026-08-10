@@ -41,18 +41,6 @@ def verdict_label(verdict: Verdict) -> str:
     return _VERDICT_LABELS[verdict]
 
 
-def highlight_quotes(text: str, quotes: list[str]) -> str:
-    escaped = html.escape(text)
-    seen: set[str] = set()
-    for quote in quotes:
-        if not quote or quote in seen:
-            continue
-        seen.add(quote)
-        escaped_quote = html.escape(quote)
-        escaped = escaped.replace(escaped_quote, f"<mark>{escaped_quote}</mark>")
-    return escaped
-
-
 def build_id_lookup(posting: Posting) -> dict[str, str]:
     lookup = {r.id: r.source_quote for r in posting.responsibilities}
     lookup.update({r.id: r.source_quote for r in posting.requirements})
@@ -61,14 +49,16 @@ def build_id_lookup(posting: Posting) -> dict[str, str]:
 
 def highlight_quotes_with_ids(text: str, id_lookup: dict[str, str]) -> str:
     escaped = html.escape(text)
-    seen: set[str] = set()
+    ids_by_quote: dict[str, list[str]] = {}
     for cite_id, quote in id_lookup.items():
-        if not quote or quote in seen:
+        if not quote:
             continue
-        seen.add(quote)
+        ids_by_quote.setdefault(quote, []).append(cite_id)
+    for quote, cite_ids in ids_by_quote.items():
         escaped_quote = html.escape(quote)
+        safe_ids = " ".join(_safe_id(cid) for cid in cite_ids)
         escaped = escaped.replace(
-            escaped_quote, f'<mark data-cite-id="{_safe_id(cite_id)}">{escaped_quote}</mark>'
+            escaped_quote, f'<mark data-cite-id="{safe_ids}">{escaped_quote}</mark>'
         )
     return escaped
 
@@ -81,8 +71,8 @@ def citation_hover_css(cite_ids: set[str]) -> str:
     if not cite_ids:
         return ""
     rules = [
-        f'div[data-testid="stHorizontalBlock"]:has([data-cite-target~="{cid}"]:hover) mark[data-cite-id="{cid}"],\n'
-        f'div[data-testid="stHorizontalBlock"]:has([data-cite-target~="{cid}"]:focus-visible) mark[data-cite-id="{cid}"] '
+        f'div[data-testid="stHorizontalBlock"]:has([data-cite-target~="{cid}"]:hover) mark[data-cite-id~="{cid}"],\n'
+        f'div[data-testid="stHorizontalBlock"]:has([data-cite-target~="{cid}"]:focus-visible) mark[data-cite-id~="{cid}"] '
         "{ background: rgba(108, 156, 232, 0.28); color: var(--ink); }"
         for cid in sorted({_safe_id(cid) for cid in cite_ids} - {""})
     ]
@@ -125,21 +115,34 @@ def build_meta_line(posting: Posting) -> str:
     return "".join(f"<span>{html.escape(p)}</span>" for p in parts)
 
 
-def _clean_label_text(text: str) -> str:
-    return text.replace("[", "(").replace("]", ")").replace("*", "").replace("\n", " ")
+_MD_SPECIAL = re.compile(r"([\\`*_~\[\]$])")
+
+
+def _escape_markdown_text(text: str) -> str:
+    """Neutralize Streamlit markdown syntax (bold/code/color directives) so LLM- or web-sourced
+    text renders literally — Streamlit renders through its own markdown parser, not raw HTML, so
+    html.escape() would be the wrong kind of escaping here."""
+    return _MD_SPECIAL.sub(r"\\\1", text.replace("\n", " "))
+
+
+def _escape_code_text(text: str) -> str:
+    """Backslash escapes don't apply inside markdown code spans, so the only character that can
+    break out is a literal backtick (it would prematurely close the span) — drop it instead."""
+    return text.replace("\n", " ").replace("`", "'")
 
 
 def build_tab_label(posting: Posting) -> str:
-    title = _clean_label_text(posting.title)
-    company = _clean_label_text(posting.company)
-    return f"**{title}**:blue[{company}]"
+    title = _escape_markdown_text(posting.title)
+    company = _escape_code_text(posting.company)
+    return f"**{title}**`{company}`"
 
 
 def format_search_actions(search_actions: list[SearchAction]) -> list[str]:
     lines = []
     for action in search_actions:
-        titles = ", ".join(r.title for r in action.results) or "no results"
-        lines.append(f"Searched “{action.query}” — found: {titles}")
+        query = _escape_markdown_text(action.query)
+        titles = ", ".join(_escape_markdown_text(r.title) for r in action.results) or "no results"
+        lines.append(f"Searched “{query}” — found: {titles}")
     return lines
 
 
@@ -173,9 +176,6 @@ html, body, [class*="st-key-"], .stApp {{
 }}
 .stApp {{ background: var(--ground); font-size: 17px; line-height: 1.6; }}
 h1, h2, h3, h4, h5 {{ font-family: 'Spectral', Georgia, serif; font-weight: 600; text-wrap: balance; }}
-h1, h2 {{ font-family: 'Spectral', Georgia, serif !important; }}
-
-.mono {{ font-family: 'IBM Plex Mono', ui-monospace, monospace; }}
 
 ::selection {{ background: var(--verified); color: var(--ground); }}
 .stApp :focus-visible {{ outline: 2px solid var(--focus); outline-offset: 2px; }}
@@ -185,7 +185,6 @@ h1, h2 {{ font-family: 'Spectral', Georgia, serif !important; }}
 .brand {{ display: flex; align-items: baseline; gap: 0.65rem; }}
 .credit {{ font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; letter-spacing: 0.03em; color: var(--ink-faint); }}
 div[class*="st-key-results_topbar"] {{ margin-bottom: -35px; }}
-.eyebrow {{ font-family: 'Public Sans', sans-serif; font-weight: 600; font-size: 1.15rem; color: var(--ink); }}
 .field-label {{ font-family: 'Public Sans', sans-serif; font-weight: 600; font-size: 1.15rem; color: var(--ink); margin-bottom: 0.5rem; }}
 
 .divider-rule {{ border: none; border-top: 1px solid var(--line); margin: 1.5rem 0; }}
@@ -289,18 +288,20 @@ div[class*="st-key-tab_"] button strong {{
     margin-bottom: 0.1rem;
     font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 1.1rem; color: var(--ink);
 }}
-div[class*="st-key-tab_"] button:hover {{ border-color: var(--ink-soft); }}
-div[class*="st-key-tab_active_"] button {{ background: var(--panel-hi); }}
+div[class*="st-key-tab_"] button:hover {{
+    border-left-color: var(--ink-soft); border-right-color: var(--ink-soft); border-bottom-color: var(--ink-soft);
+}}
+div[class*="st-key-tab_"] button[kind="primary"] {{ background: var(--panel-hi); }}
 
-div[class*="_strong_match_"] button {{ border-top-color: var(--strength); }}
-div[class*="_stretch_"] button {{ border-top-color: var(--stretch); }}
-div[class*="_weak_fit_"] button {{ border-top-color: var(--gap); }}
+div[class*="st-key-tab_strong_match_"] button {{ border-top-color: var(--strength); }}
+div[class*="st-key-tab_stretch_"] button {{ border-top-color: var(--stretch); }}
+div[class*="st-key-tab_weak_fit_"] button {{ border-top-color: var(--gap); }}
 
-/* Company name (:blue[...] in the label) — bigger, plain weight, sits tight under the title. */
-div[class*="st-key-tab_"] button span[style*="rgb(61, 157, 243)"] {{
+/* Company name (`code` span in the label) — bigger, plain weight, sits tight under the title. */
+div[class*="st-key-tab_"] button code {{
     display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    vertical-align: bottom; color: var(--ink-soft) !important;
-    font-family: 'IBM Plex Mono', monospace; font-size: 0.92rem; font-weight: 500;
+    vertical-align: bottom; color: var(--ink-soft) !important; background: none !important; padding: 0 !important;
+    border-radius: 0 !important; font-family: 'IBM Plex Mono', monospace; font-size: 0.92rem; font-weight: 500;
 }}
 
 .title-row {{ display: flex; align-items: baseline; justify-content: flex-start; flex-wrap: wrap; margin-bottom: 0.15rem; }}
@@ -419,7 +420,7 @@ CITATION_SCROLL_JS = """
     if (!card) return;
     var ids = (card.getAttribute('data-cite-target') || '').split(' ').filter(Boolean);
     if (!ids.length) return;
-    var mark = doc.querySelector('mark[data-cite-id="' + ids[0] + '"]');
+    var mark = doc.querySelector('mark[data-cite-id~="' + ids[0] + '"]');
     if (!mark) return;
     var rail = mark.closest('.rail-scroll');
     if (!rail) return;

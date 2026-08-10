@@ -84,7 +84,9 @@ def render_input_stage() -> None:
             st.session_state.next_posting_id += 1
             st.rerun()
 
-        posting_inputs = [p.strip() for p in posting_inputs_raw if p.strip()]
+        posting_inputs = [
+            (display_index + 1, p.strip()) for display_index, p in enumerate(posting_inputs_raw) if p.strip()
+        ]
         can_analyze = bool(posting_inputs) and bool(candidate_text.strip())
 
         analyze_clicked = st.button(
@@ -98,7 +100,7 @@ def render_input_stage() -> None:
             run_analysis(candidate_text, posting_inputs)
 
 
-def run_analysis(candidate_text: str, posting_inputs: list[str]) -> None:
+def run_analysis(candidate_text: str, posting_inputs: list[tuple[int, str]]) -> None:
     try:
         client = LLMClient()
     except Exception as e:
@@ -109,15 +111,15 @@ def run_analysis(candidate_text: str, posting_inputs: list[str]) -> None:
     results = []
     errors = []
 
-    for i, raw_input in enumerate(posting_inputs):
+    for progress_index, (display_number, raw_input) in enumerate(posting_inputs, start=1):
         try:
-            with st.spinner(f"Processing posting {i + 1} of {len(posting_inputs)}..."):
+            with st.spinner(f"Processing posting {display_number} ({progress_index} of {len(posting_inputs)})..."):
                 posting_text = client.fetch_url_text(raw_input) if is_url(raw_input) else raw_input
                 extraction = extract_posting(posting_text, client)
                 analysis = analyze_fit(extraction.posting, candidate_text, client)
             results.append({"posting_text": posting_text, "extraction": extraction, "analysis": analysis})
         except Exception as e:
-            errors.append((i + 1, str(e)))
+            errors.append((display_number, str(e)))
 
     results.sort(key=lambda r: ranking_key(r["analysis"].verdict, r["analysis"].insights))
 
@@ -179,10 +181,9 @@ def render_results_stage() -> None:
             verdict = r["analysis"].verdict
             is_active = i == st.session_state.active_tab
             label = build_tab_label(posting)
-            state = "active" if is_active else "idle"
-            key = f"tab_{state}_{verdict.value}_{i}"
+            key = f"tab_{verdict.value}_{i}"
             with col:
-                if st.button(label, key=key):
+                if st.button(label, key=key, type="primary" if is_active else "secondary"):
                     st.session_state.active_tab = i
                     st.rerun()
 
