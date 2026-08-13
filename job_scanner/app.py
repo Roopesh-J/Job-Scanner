@@ -47,6 +47,19 @@ if "active_tab" not in st.session_state:
     st.session_state.active_tab = 0
 if "analyzing" not in st.session_state:
     st.session_state.analyzing = False
+if "acknowledged" not in st.session_state:
+    st.session_state.acknowledged = False
+
+
+def render_acknowledgment_panel() -> None:
+    st.info(
+        "This tool makes real calls to the Claude API, shared across everyone who visits "
+        f"this link and capped at {usage_guard.DAILY_POSTING_LIMIT} postings analyzed per day. "
+        "Continue to use it."
+    )
+    if st.button("Continue", key="acknowledge_btn"):
+        st.session_state.acknowledged = True
+        st.rerun()
 
 
 def render_input_stage() -> None:
@@ -69,9 +82,17 @@ def render_input_stage() -> None:
         st.markdown(HOW_TO_HTML, unsafe_allow_html=True)
 
     with form_col:
+        if not st.session_state.acknowledged:
+            render_acknowledgment_panel()
+            return
+
         st.markdown('<span class="field-label">Your background</span>', unsafe_allow_html=True)
         candidate_text = st.text_area(
-            "Your background", height=110, label_visibility="collapsed", key="candidate_text"
+            "Your background",
+            height=110,
+            label_visibility="collapsed",
+            key="candidate_text",
+            max_chars=usage_guard.MAX_CANDIDATE_CHARS,
         )
 
         st.markdown('<span class="field-label">Postings</span>', unsafe_allow_html=True)
@@ -85,6 +106,7 @@ def render_input_stage() -> None:
                         height=90,
                         label_visibility="collapsed",
                         key=f"posting_{pid}",
+                        max_chars=usage_guard.MAX_POSTING_CHARS,
                     )
                 )
                 if len(posting_ids) > 1 and st.button(
@@ -93,15 +115,24 @@ def render_input_stage() -> None:
                     posting_ids.remove(pid)
                     st.rerun()
 
-        if st.button("+ Add another posting", key="add_posting"):
-            posting_ids.append(st.session_state.next_posting_id)
-            st.session_state.next_posting_id += 1
-            st.rerun()
+        if len(posting_ids) < usage_guard.MAX_POSTINGS_PER_BATCH:
+            if st.button("+ Add another posting", key="add_posting"):
+                posting_ids.append(st.session_state.next_posting_id)
+                st.session_state.next_posting_id += 1
+                st.rerun()
+        else:
+            st.caption(f"Max {usage_guard.MAX_POSTINGS_PER_BATCH} postings at a time.")
 
         posting_inputs = [
             (display_index + 1, p.strip()) for display_index, p in enumerate(posting_inputs_raw) if p.strip()
         ]
-        can_analyze = bool(posting_inputs) and bool(candidate_text.strip())
+        remaining = usage_guard.remaining_today()
+        can_analyze = bool(posting_inputs) and bool(candidate_text.strip()) and remaining > 0
+
+        if remaining <= 0:
+            st.caption("Daily usage limit reached. Try again tomorrow.")
+        else:
+            st.caption(f"{remaining} of {usage_guard.DAILY_POSTING_LIMIT} analyses left today.")
 
         analyze_clicked = st.button(
             "Analyze", key="analyze_btn", disabled=not can_analyze or st.session_state.analyzing
