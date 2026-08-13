@@ -7,6 +7,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 from dotenv import load_dotenv
 
+from job_scanner import usage_guard
 from job_scanner.analyzer import analyze_fit
 from job_scanner.extractor import extract_posting, is_url
 from job_scanner.llm_client import LLMClient
@@ -128,9 +129,27 @@ def _is_systemic(e: Exception) -> bool:
 _PROCESSING_ERROR_MESSAGE = "There was an error while running one or more of the postings. Please try again in some time."
 
 
-def _fail_remaining(posting_inputs: list[tuple[int, str]], from_index: int, errors: list[tuple[int, str]]) -> None:
+def _fail_remaining(
+    posting_inputs: list[tuple[int, str]],
+    from_index: int,
+    errors: list[tuple[int, str]],
+    message: str = _PROCESSING_ERROR_MESSAGE,
+) -> None:
     for display_number, _ in posting_inputs[from_index:]:
-        errors.append((display_number, _PROCESSING_ERROR_MESSAGE))
+        errors.append((display_number, message))
+
+
+_DAILY_LIMIT_MESSAGE = "Daily usage limit reached. Try again tomorrow."
+
+
+def _apply_daily_budget(
+    posting_inputs: list[tuple[int, str]], errors: list[tuple[int, str]]
+) -> list[tuple[int, str]]:
+    budget = usage_guard.remaining_today()
+    if budget >= len(posting_inputs):
+        return posting_inputs
+    _fail_remaining(posting_inputs, budget, errors, message=_DAILY_LIMIT_MESSAGE)
+    return posting_inputs[:budget]
 
 
 def run_analysis(candidate_text: str, posting_inputs: list[tuple[int, str]]) -> None:
