@@ -163,7 +163,10 @@ def run_analysis(candidate_text: str, posting_inputs: list[tuple[int, str]]) -> 
     results = []
     errors = []
 
+    posting_inputs = _apply_daily_budget(posting_inputs, errors)
+
     for progress_index, (display_number, raw_input) in enumerate(posting_inputs, start=1):
+        usage_guard.record_processed(1)
         with st.spinner(f"Processing posting {display_number} ({progress_index} of {len(posting_inputs)})..."):
             try:
                 posting_text = client.fetch_url_text(raw_input) if is_url(raw_input) else raw_input
