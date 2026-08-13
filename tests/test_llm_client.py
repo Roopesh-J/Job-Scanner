@@ -129,6 +129,24 @@ def test_call_tool_with_search_preserves_prior_turns_across_two_pauses():
     ]
 
 
+def test_call_tool_with_search_retry_bound_is_not_limited_by_max_searches():
+    client = LLMClient(api_key="test-key")
+    pauses = [
+        SimpleNamespace(content=[SimpleNamespace(type="text", text="thinking...")], stop_reason="pause_turn")
+        for _ in range(3)
+    ]
+    final_call = SimpleNamespace(type="tool_use", name="analyze_fit", input={"insights": []})
+    final_response = SimpleNamespace(content=[final_call], stop_reason="tool_use")
+
+    with patch.object(client._client.messages, "create", side_effect=[*pauses, final_response]):
+        tool_input, _ = client.call_tool_with_search(
+            system="sys", user="usr", tool_name="analyze_fit", tool_schema={"type": "object"},
+            tool_description="desc", max_searches=1,
+        )
+
+    assert tool_input == {"insights": []}
+
+
 def test_call_tool_with_search_raises_when_final_tool_never_called():
     client = LLMClient(api_key="test-key")
     fake_response = SimpleNamespace(content=[SimpleNamespace(type="text", text="I'm done.")], stop_reason="end_turn")
@@ -163,7 +181,7 @@ def test_fetch_url_text_raises_clear_error_when_fetch_fails():
     fake_response = SimpleNamespace(content=[result_block], stop_reason="tool_use")
 
     with patch.object(client._client.messages, "create", return_value=fake_response):
-        with pytest.raises(RuntimeError, match="url_not_accessible"):
+        with pytest.raises(RuntimeError, match="Could not fetch this URL"):
             client.fetch_url_text("https://example.com/job")
 
 

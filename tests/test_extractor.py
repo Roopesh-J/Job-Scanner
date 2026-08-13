@@ -89,6 +89,84 @@ def test_extract_posting_drops_fabricated_salary():
     assert result.posting.salary is None
 
 
+def test_extract_posting_does_not_ground_salary_from_unrelated_digits_elsewhere_in_text():
+    # "$1, 5, 0, 000" here are unrelated numbers in an unrelated sentence — a naive
+    # strip-all-whitespace-and-commas-then-substring-check would wrongly treat this as grounds
+    # for a fabricated "$150,000" salary just because the digits happen to concatenate.
+    posting_text_with_unrelated_digits = (
+        "We need someone with 5+ years of Python and ownership of our public API. "
+        "Team budget lines: $1, 5, 0, 000 dollars across three departments this year."
+    )
+    raw_with_fabricated_salary = {**RAW_TOOL_OUTPUT, "salary": "$150,000"}
+    client = _mock_client(raw_with_fabricated_salary)
+
+    result = extract_posting(posting_text_with_unrelated_digits, client)
+
+    assert result.posting.salary is None
+
+
+def test_extract_posting_grounds_salary_despite_dash_spacing_difference():
+    posting_text_spaced_dash = (
+        "We need someone with 5+ years of Python and ownership of our public API. "
+        "Compensation: $120,000 - $150,000 per year."
+    )
+    raw_with_tight_dash_salary = {**RAW_TOOL_OUTPUT, "salary": "$120,000-$150,000"}
+    client = _mock_client(raw_with_tight_dash_salary)
+
+    result = extract_posting(posting_text_spaced_dash, client)
+
+    assert result.posting.salary == "$120,000-$150,000"
+
+
+def test_extract_posting_grounds_salary_despite_en_dash_in_posting_text():
+    posting_text_en_dash = (
+        "We need someone with 5+ years of Python and ownership of our public API. "
+        "Compensation: $120,000–$150,000 per year."
+    )
+    raw_with_ascii_dash_salary = {**RAW_TOOL_OUTPUT, "salary": "$120,000-$150,000"}
+    client = _mock_client(raw_with_ascii_dash_salary)
+
+    result = extract_posting(posting_text_en_dash, client)
+
+    assert result.posting.salary == "$120,000-$150,000"
+
+
+def test_extract_posting_drops_requirement_with_non_string_category():
+    raw_with_bad_category = {
+        **RAW_TOOL_OUTPUT,
+        "requirements": [
+            {"text": "5+ years Python", "category": "required", "source_quote": "5+ years of Python"},
+            {"text": "Bad category type", "category": ["required"], "source_quote": "5+ years of Python"},
+        ],
+    }
+    client = _mock_client(raw_with_bad_category)
+
+    result = extract_posting(POSTING_TEXT, client)
+
+    assert len(result.posting.requirements) == 1
+    assert result.posting.requirements[0].text == "5+ years Python"
+
+
+def test_extract_posting_treats_non_string_salary_as_not_mentioned():
+    raw_with_non_string_salary = {**RAW_TOOL_OUTPUT, "salary": 50000}
+    client = _mock_client(raw_with_non_string_salary)
+
+    result = extract_posting(POSTING_TEXT, client)
+
+    assert result.posting.salary is None
+
+
+def test_extract_posting_grounds_salary_despite_comma_and_spacing_differences():
+    posting_text_no_commas = (
+        "We need someone with 5+ years of Python and ownership of our public API. Salary: $150000-$180000."
+    )
+    client = _mock_client(RAW_TOOL_OUTPUT)  # salary is "$150,000 - $180,000"
+
+    result = extract_posting(posting_text_no_commas, client)
+
+    assert result.posting.salary == "$150,000 - $180,000"
+
+
 def test_extract_posting_sets_salary_to_none_when_not_mentioned():
     raw_without_salary = {**RAW_TOOL_OUTPUT, "salary": ""}
     client = _mock_client(raw_without_salary)

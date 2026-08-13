@@ -1,5 +1,8 @@
 import html
+import os
+import sys
 
+import anthropic
 import streamlit as st
 import streamlit.components.v1 as components
 from dotenv import load_dotenv
@@ -46,6 +49,16 @@ if "analyzing" not in st.session_state:
 
 
 def render_input_stage() -> None:
+    if os.environ.get("JOBSCAN_DEV_DATA") == "1" and st.button("⚡ Load sample results (dev)", key="dev_load_sample"):
+        from job_scanner.dev_data import sample_results
+
+        results, errors = sample_results()
+        st.session_state.results = results
+        st.session_state.errors = errors
+        st.session_state.active_tab = 0
+        st.session_state.stage = "results"
+        st.rerun()
+
     st.markdown(HERO_HTML, unsafe_allow_html=True)
     st.markdown('<hr class="divider-rule">', unsafe_allow_html=True)
 
@@ -100,6 +113,26 @@ def render_input_stage() -> None:
             run_analysis(candidate_text, posting_inputs)
 
 
+# Unambiguous account/connection-level failures — retrying identically for every remaining
+# posting just burns time and quota, so these abort the rest of the batch instead. Excludes
+# APITimeoutError even though it subclasses APIConnectionError: a single slow request timing
+# out says nothing about whether the rest of the batch would fail too, unlike an auth/rate-limit/
+# connection problem.
+_SYSTEMIC_ERRORS = (anthropic.AuthenticationError, anthropic.RateLimitError, anthropic.APIConnectionError)
+
+
+def _is_systemic(e: Exception) -> bool:
+    return isinstance(e, _SYSTEMIC_ERRORS) and not isinstance(e, anthropic.APITimeoutError)
+
+
+_PROCESSING_ERROR_MESSAGE = "There was an error while running one or more of the postings. Please try again in some time."
+
+
+def _fail_remaining(posting_inputs: list[tuple[int, str]], from_index: int, errors: list[tuple[int, str]]) -> None:
+    for display_number, _ in posting_inputs[from_index:]:
+        errors.append((display_number, _PROCESSING_ERROR_MESSAGE))
+
+
 def run_analysis(candidate_text: str, posting_inputs: list[tuple[int, str]]) -> None:
     try:
         client = LLMClient()
@@ -112,14 +145,31 @@ def run_analysis(candidate_text: str, posting_inputs: list[tuple[int, str]]) -> 
     errors = []
 
     for progress_index, (display_number, raw_input) in enumerate(posting_inputs, start=1):
-        try:
-            with st.spinner(f"Processing posting {display_number} ({progress_index} of {len(posting_inputs)})..."):
+        with st.spinner(f"Processing posting {display_number} ({progress_index} of {len(posting_inputs)})..."):
+            try:
                 posting_text = client.fetch_url_text(raw_input) if is_url(raw_input) else raw_input
+            except Exception as e:
+                if _is_systemic(e):
+                    print(f"Posting {display_number} fetch failed (systemic, aborting batch): {e!r}", file=sys.stderr)
+                    _fail_remaining(posting_inputs, progress_index - 1, errors)
+                    break
+                print(f"Posting {display_number} fetch failed: {e!r}", file=sys.stderr)
+                errors.append((display_number, "Could not fetch URL. Try pasting in the posting text directly instead."))
+                continue
+
+            try:
                 extraction = extract_posting(posting_text, client)
                 analysis = analyze_fit(extraction.posting, candidate_text, client)
+            except Exception as e:
+                if _is_systemic(e):
+                    print(f"Posting {display_number} failed (systemic, aborting batch): {e!r}", file=sys.stderr)
+                    _fail_remaining(posting_inputs, progress_index - 1, errors)
+                    break
+                print(f"Posting {display_number} failed: {e!r}", file=sys.stderr)
+                errors.append((display_number, _PROCESSING_ERROR_MESSAGE))
+                continue
+
             results.append({"posting_text": posting_text, "extraction": extraction, "analysis": analysis})
-        except Exception as e:
-            errors.append((display_number, str(e)))
 
     results.sort(key=lambda r: ranking_key(r["analysis"].verdict, r["analysis"].insights))
 
@@ -149,7 +199,7 @@ def render_results_stage() -> None:
                 st.rerun()
 
     for posting_number, error in st.session_state.errors:
-        st.error(f"Posting {posting_number}: something went wrong — {error}")
+        st.error(f"Posting {posting_number}: {error}")
 
     if not results:
         st.info("No postings could be analyzed. Go back and try again.")

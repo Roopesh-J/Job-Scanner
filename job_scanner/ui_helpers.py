@@ -54,13 +54,40 @@ def highlight_quotes_with_ids(text: str, id_lookup: dict[str, str]) -> str:
         if not quote:
             continue
         ids_by_quote.setdefault(quote, []).append(cite_id)
+
+    # Find every occurrence of every quote in the pristine escaped text (no sequential
+    # str.replace() mutation, which would re-match text already inside a just-inserted <mark>).
+    # Then merge overlapping spans — full containment, partial overlap, or duplicates — into one
+    # <mark> with the union of their citation ids, so no quote's citation is ever silently
+    # dropped just because its span overlaps another quote's.
+    raw_spans: list[tuple[int, int, list[str]]] = []
     for quote, cite_ids in ids_by_quote.items():
         escaped_quote = html.escape(quote)
-        safe_ids = " ".join(_safe_id(cid) for cid in cite_ids)
-        escaped = escaped.replace(
-            escaped_quote, f'<mark data-cite-id="{safe_ids}">{escaped_quote}</mark>'
-        )
-    return escaped
+        if not escaped_quote:
+            continue
+        search_from = 0
+        while (idx := escaped.find(escaped_quote, search_from)) != -1:
+            raw_spans.append((idx, idx + len(escaped_quote), cite_ids))
+            search_from = idx + 1
+
+    raw_spans.sort(key=lambda s: s[0])
+    merged: list[list] = []  # each: [start, end, [cite_ids]]
+    for start, end, cite_ids in raw_spans:
+        if merged and start < merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], end)
+            merged[-1][2].extend(cite_ids)
+        else:
+            merged.append([start, end, list(cite_ids)])
+
+    pieces = []
+    cursor = 0
+    for start, end, cite_ids in merged:
+        safe_ids = " ".join(dict.fromkeys(_safe_id(cid) for cid in cite_ids))
+        pieces.append(escaped[cursor:start])
+        pieces.append(f'<mark data-cite-id="{safe_ids}">{escaped[start:end]}</mark>')
+        cursor = end
+    pieces.append(escaped[cursor:])
+    return "".join(pieces)
 
 
 def cite_targets(supporting_ids: list[str], id_lookup: dict[str, str]) -> str:
@@ -80,7 +107,7 @@ def citation_hover_css(cite_ids: set[str]) -> str:
 
 
 _SALARY_NUMBER = re.compile(r"\$?\s?(\d[\d,]*(?:\.\d+)?)\s?([kK])?")
-_SALARY_RATE = re.compile(r"/\s?(hr|hour|yr|year|wk|week|mo|month)\b", re.IGNORECASE)
+_SALARY_RATE = re.compile(r"(?:/|\bper)\s?(hr|hour|yr|year|wk|week|mo|month)\b", re.IGNORECASE)
 
 
 def format_salary(raw: str) -> str:
@@ -306,7 +333,7 @@ div[class*="st-key-tab_"] button code {{
 
 .title-row {{ display: flex; align-items: baseline; justify-content: flex-start; flex-wrap: wrap; margin-bottom: 0.15rem; }}
 .detail-head h2 {{ color: var(--ink); font-size: 2.3rem; margin: 0; }}
-.company-name {{ font-family: 'Spectral', Georgia, serif; font-weight: 400; font-size: 2.3rem; color: var(--ink-soft); }}
+.company-name {{ font-weight: 400; font-size: 2.3rem; color: var(--ink-soft); }}
 .company-name::before {{ content: "·"; margin: 0 0.6rem; color: var(--ink-faint); font-weight: 400; }}
 .posting-meta {{ display: flex; flex-wrap: wrap; align-items: center; font-family: 'IBM Plex Mono', monospace;
     font-size: 0.92rem; color: var(--ink-soft); gap: 0.4rem 0; padding-top: 0.2rem; margin-bottom: 1rem; }}

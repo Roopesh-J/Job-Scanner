@@ -147,6 +147,94 @@ def test_analyze_fit_drops_malformed_insight_item_that_is_not_an_object():
     assert result.dropped_count == 1
 
 
+def test_analyze_fit_drops_insight_with_non_string_supporting_id():
+    raw_output = {
+        "summary": "Overall fit summary text.",
+        "verdict": "strong_match",
+        "insights": [
+            {"text": "Weird citation", "kind": "strength", "supporting_ids": [{"weird": "dict"}]},
+            {"text": "Strong Python background", "kind": "strength", "supporting_ids": ["req-1"]},
+        ],
+    }
+    client = _mock_client(raw_output)
+
+    result = analyze_fit(_posting(), "profile text", client)
+
+    assert len(result.insights) == 1
+    assert result.insights[0].text == "Strong Python background"
+    assert result.dropped_count == 1
+
+
+def test_analyze_fit_retries_when_verdict_is_not_a_string():
+    raw_output = {
+        "summary": "Overall fit summary text.",
+        "verdict": ["not", "a", "string"],
+        "insights": [
+            {"text": "Strong Python background", "kind": "strength", "supporting_ids": ["req-1"]},
+        ],
+    }
+    client = _mock_client(raw_output)
+
+    with pytest.raises(RuntimeError, match="incomplete"):
+        analyze_fit(_posting(), "profile text", client)
+
+    assert client.call_tool_with_search.call_count == 2
+
+
+def test_analyze_fit_drops_insight_with_no_supporting_ids():
+    raw_output = {
+        "summary": "Overall fit summary text.",
+        "verdict": "strong_match",
+        "insights": [
+            {"text": "Uncited claim", "kind": "strength", "supporting_ids": []},
+            {"text": "Strong Python background", "kind": "strength", "supporting_ids": ["req-1"]},
+        ],
+    }
+    client = _mock_client(raw_output)
+
+    result = analyze_fit(_posting(), "profile text", client)
+
+    assert len(result.insights) == 1
+    assert result.insights[0].text == "Strong Python background"
+    assert result.dropped_count == 1
+
+
+def test_analyze_fit_drops_insight_with_non_string_text():
+    raw_output = {
+        "summary": "Overall fit summary text.",
+        "verdict": "strong_match",
+        "insights": [
+            {"text": 123, "kind": "strength", "supporting_ids": ["req-1"]},
+            {"text": "Strong Python background", "kind": "strength", "supporting_ids": ["req-1"]},
+        ],
+    }
+    client = _mock_client(raw_output)
+
+    result = analyze_fit(_posting(), "profile text", client)
+
+    assert len(result.insights) == 1
+    assert result.insights[0].text == "Strong Python background"
+    assert result.dropped_count == 1
+
+
+def test_analyze_fit_drops_insight_with_invalid_kind():
+    raw_output = {
+        "summary": "Overall fit summary text.",
+        "verdict": "strong_match",
+        "insights": [
+            {"text": "Neutral observation", "kind": "neutral", "supporting_ids": ["req-1"]},
+            {"text": "Strong Python background", "kind": "strength", "supporting_ids": ["req-1"]},
+        ],
+    }
+    client = _mock_client(raw_output)
+
+    result = analyze_fit(_posting(), "profile text", client)
+
+    assert len(result.insights) == 1
+    assert result.insights[0].text == "Strong Python background"
+    assert result.dropped_count == 1
+
+
 def test_analyze_fit_raises_clear_error_when_insights_is_not_a_list():
     raw_output = {
         "summary": "Overall fit summary text.",

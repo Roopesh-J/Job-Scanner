@@ -46,9 +46,34 @@ def test_highlight_quotes_with_ids_keeps_every_id_when_quotes_collide():
     assert result == 'Uses <mark data-cite-id="req-1 req-2">Python</mark> daily.'
 
 
+def test_highlight_quotes_with_ids_merges_contained_short_quote_instead_of_nesting():
+    text = "We need Kubernetes here. Own the production Kubernetes experience."
+    id_lookup = {"resp-1": "Kubernetes", "req-2": "production Kubernetes experience"}
+    result = highlight_quotes_with_ids(text, id_lookup)
+    assert result == (
+        'We need <mark data-cite-id="resp-1">Kubernetes</mark> here. '
+        'Own the <mark data-cite-id="req-2 resp-1">production Kubernetes experience</mark>.'
+    )
+
+
+def test_highlight_quotes_with_ids_merges_partially_overlapping_quotes_instead_of_dropping_one():
+    text = "the quick brown fox jumps"
+    id_lookup = {"a": "quick brown", "b": "brown fox"}
+    result = highlight_quotes_with_ids(text, id_lookup)
+    assert result == 'the <mark data-cite-id="a b">quick brown fox</mark> jumps'
+
+
 def test_format_salary_formats_range_and_falls_back_when_unparseable():
     assert format_salary("$45,000 - $135,000") == "$45,000 - $135,000"
     assert format_salary("competitive") == "competitive"
+
+
+def test_format_salary_recognizes_per_hour_phrasing():
+    assert format_salary("$45 per hour") == "$45/hour"
+
+
+def test_format_salary_does_not_treat_per_inside_a_word_as_a_rate_suffix():
+    assert format_salary("$45 the hopper week rotation") == "$45"
 
 
 def _posting(title: str, company: str) -> Posting:

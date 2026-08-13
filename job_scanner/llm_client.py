@@ -5,6 +5,12 @@ import anthropic
 
 DEFAULT_MODEL = "claude-sonnet-5"
 
+# Ceiling on pause_turn retries in call_tool_with_search. Deliberately not derived from
+# max_searches — pause_turn can occur for reasons other than a search (e.g. multiple
+# server-side turns before the final answer), so tying the two together can cut off a
+# well-behaved turn that never actually exceeded its search budget.
+_MAX_PAUSE_TURN_RETRIES = 6
+
 
 class LLMClient:
     def __init__(self, api_key: str | None = None, model: str = DEFAULT_MODEL):
@@ -48,7 +54,7 @@ class LLMClient:
         messages: list[dict[str, Any]] = [{"role": "user", "content": user}]
         search_actions: list[dict[str, Any]] = []
 
-        for _ in range(max_searches + 1):
+        for _ in range(_MAX_PAUSE_TURN_RETRIES):
             response = self._client.messages.create(
                 model=self.model,
                 max_tokens=8192,
@@ -105,9 +111,11 @@ class LLMClient:
                 continue
             result = block.content
             if getattr(result, "type", None) == "web_fetch_tool_result_error":
-                raise RuntimeError(f"Could not fetch this URL ({result.error_code}).")
+                raise RuntimeError("Could not fetch this URL. Try pasting the posting text directly instead.")
             source = result.content.source
             if getattr(source, "type", None) != "text":
-                raise RuntimeError("This URL didn't return readable text content.")
+                raise RuntimeError(
+                    "This URL didn't return readable text content. Try pasting the posting text directly instead."
+                )
             return source.data
-        raise RuntimeError("Could not fetch content from this URL.")
+        raise RuntimeError("Could not fetch content from this URL. Try pasting the posting text directly instead.")
