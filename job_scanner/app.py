@@ -55,7 +55,7 @@ def render_acknowledgment_panel() -> None:
     st.info(
         "This tool makes real calls to the Claude API, shared across everyone who visits "
         f"this link and capped at {usage_guard.DAILY_POSTING_LIMIT} postings analyzed per day. "
-        "Continue to use it."
+        "Click Continue to proceed."
     )
     if st.button("Continue", key="acknowledge_btn"):
         st.session_state.acknowledged = True
@@ -132,7 +132,7 @@ def render_input_stage() -> None:
         if remaining <= 0:
             st.caption("Daily usage limit reached. Try again tomorrow.")
         else:
-            st.caption(f"{remaining} of {usage_guard.DAILY_POSTING_LIMIT} analyses left today.")
+            st.caption(f"{remaining} of {usage_guard.DAILY_POSTING_LIMIT} shared analyses left today.")
 
         analyze_clicked = st.button(
             "Analyze", key="analyze_btn", disabled=not can_analyze or st.session_state.analyzing
@@ -177,8 +177,6 @@ def _apply_daily_budget(
     posting_inputs: list[tuple[int, str]], errors: list[tuple[int, str]]
 ) -> list[tuple[int, str]]:
     budget = usage_guard.remaining_today()
-    if budget >= len(posting_inputs):
-        return posting_inputs
     _fail_remaining(posting_inputs, budget, errors, message=_DAILY_LIMIT_MESSAGE)
     return posting_inputs[:budget]
 
@@ -201,6 +199,7 @@ def run_analysis(candidate_text: str, posting_inputs: list[tuple[int, str]]) -> 
         with st.spinner(f"Processing posting {display_number} ({progress_index} of {len(posting_inputs)})..."):
             try:
                 posting_text = client.fetch_url_text(raw_input) if is_url(raw_input) else raw_input
+                posting_text = posting_text[: usage_guard.MAX_POSTING_CHARS]
             except Exception as e:
                 if _is_systemic(e):
                     print(f"Posting {display_number} fetch failed (systemic, aborting batch): {e!r}", file=sys.stderr)
@@ -251,7 +250,7 @@ def render_results_stage() -> None:
                 st.session_state.analyzing = False
                 st.rerun()
 
-    for posting_number, error in st.session_state.errors:
+    for posting_number, error in sorted(st.session_state.errors):
         st.error(f"Posting {posting_number}: {error}")
 
     if not results:

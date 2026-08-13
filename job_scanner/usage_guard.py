@@ -1,4 +1,5 @@
 from datetime import date, datetime, timezone
+from typing import Any
 
 DAILY_POSTING_LIMIT = 40
 MAX_POSTINGS_PER_BATCH = 5
@@ -9,8 +10,10 @@ MAX_CANDIDATE_CHARS = 6000
 # long-lived process shared by every visitor, so this genuinely persists across sessions.
 # session_state would reset per browser tab and defeat the point of a shared daily cap.
 # Resets whenever the process restarts (redeploy, or waking from inactivity) — accepted
-# limitation, this is a best-effort daily budget, not a hard guarantee.
-_state: dict[str, object] = {"date": None, "count": 0}
+# limitation, this is a best-effort daily budget, not a hard guarantee. Concurrent sessions can
+# also cause the counter to overshoot slightly, since incrementing it and checking the
+# per-batch budget are not atomic — also accepted, not worth engineering around here.
+_state: dict[str, Any] = {"date": None, "count": 0}
 
 
 def _today() -> date:

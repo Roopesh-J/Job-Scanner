@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 import anthropic
 import httpx
 
@@ -91,3 +93,28 @@ def test_fail_remaining_accepts_a_custom_message():
     _fail_remaining(posting_inputs, from_index=0, errors=errors, message="custom message")
 
     assert errors == [(1, "custom message"), (2, "custom message")]
+
+
+def test_run_analysis_counts_budget_even_when_a_posting_fails():
+    usage_guard._state["date"] = None
+    usage_guard._state["count"] = 0
+
+    fake_client = MagicMock()
+    fake_client.fetch_url_text.side_effect = RuntimeError("boom")
+
+    try:
+        with patch("job_scanner.app.st") as mock_st, patch(
+            "job_scanner.app.LLMClient", return_value=fake_client
+        ):
+            mock_st.session_state = MagicMock()
+            mock_st.spinner.return_value.__enter__ = MagicMock()
+            mock_st.spinner.return_value.__exit__ = MagicMock(return_value=False)
+
+            from job_scanner.app import run_analysis
+
+            run_analysis("some background", [(1, "https://example.com/job")])
+
+        assert usage_guard.remaining_today() == usage_guard.DAILY_POSTING_LIMIT - 1
+    finally:
+        usage_guard._state["date"] = None
+        usage_guard._state["count"] = 0

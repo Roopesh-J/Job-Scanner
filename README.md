@@ -31,7 +31,7 @@ streamlit run job_scanner/app.py
    ```
 3. Deploy. `requirements.txt` (`-e .`) installs the package and its dependencies from `pyproject.toml`.
 
-The app has no login/passcode and no request cap — anyone with the URL can trigger real API calls against the configured key.
+The app has no login/passcode by design — anyone with the URL can use it. To keep API spend bounded, there's a shared, in-process daily cap on postings analyzed (`usage_guard.DAILY_POSTING_LIMIT`), plus per-batch (`MAX_POSTINGS_PER_BATCH`) and per-field character limits. The daily counter lives in memory, so it resets if the process restarts (a redeploy, or Streamlit Community Cloud waking from inactivity) — it's a best-effort budget, not a hard guarantee. Also note that the character limits (`max_chars` on the input widgets) are client-side widget enforcement only, with no server-side re-validation — they stop accidental oversized pastes, not a client that speaks Streamlit's protocol directly.
 
 ## Tech stack
 
