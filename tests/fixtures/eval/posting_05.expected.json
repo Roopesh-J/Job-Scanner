@@ -1,0 +1,17 @@
+{
+  "title": "Marketing Coordinator",
+  "company": "Willow & Co.",
+  "location": null,
+  "seniority": null,
+  "responsibilities": [
+    {"text": "Manage social media calendar", "source_quote": "manage our social media content calendar"},
+    {"text": "Coordinate email campaigns", "source_quote": "coordinate email campaigns from concept through send"},
+    {"text": "Track campaign performance metrics", "source_quote": "track campaign performance metrics across channels"}
+  ],
+  "requirements": [
+    {"text": "1-2 years marketing experience", "category": "required", "source_quote": "1-2 years of marketing experience"},
+    {"text": "Proficiency with Google Analytics", "category": "required", "source_quote": "proficiency with Google Analytics"},
+    {"text": "Mailchimp or similar ESP experience", "category": "preferred", "source_quote": "Experience with Mailchimp or a similar email service provider is a plus"},
+    {"text": "Creative mindset", "category": "unclear", "source_quote": "A creative mindset is important for this role"}
+  ]
+}

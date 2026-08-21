@@ -1,0 +1,17 @@
+{
+  "title": "Junior Software Engineer",
+  "company": "Brightline Software",
+  "location": null,
+  "seniority": "Junior",
+  "responsibilities": [
+    {"text": "Fix bugs in production", "source_quote": "fix bugs in our production codebase"},
+    {"text": "Write unit tests for new features", "source_quote": "write unit tests for new features"},
+    {"text": "Participate in code review", "source_quote": "participate in code review with senior engineers"}
+  ],
+  "requirements": [
+    {"text": "Bachelor's degree in CS or related field", "category": "required", "source_quote": "Bachelor's degree in Computer Science or a related field"},
+    {"text": "Proficiency in an object-oriented language", "category": "required", "source_quote": "proficiency in at least one object-oriented language such as Java, Python, or C++"},
+    {"text": "Internship or coursework in web development", "category": "preferred", "source_quote": "An internship or coursework in web development is a plus"},
+    {"text": "Comfortable in a fast-paced environment", "category": "unclear", "source_quote": "comfortable working in a fast-paced environment"}
+  ]
+}

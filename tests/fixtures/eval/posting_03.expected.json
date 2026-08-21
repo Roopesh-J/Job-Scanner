@@ -1,0 +1,17 @@
+{
+  "title": "Senior Site Reliability Engineer",
+  "company": "Northwind Cloud",
+  "location": null,
+  "seniority": "Senior",
+  "responsibilities": [
+    {"text": "Own production incident response", "source_quote": "own production incident response"},
+    {"text": "Build monitoring and alerting", "source_quote": "build monitoring and alerting for our core services"},
+    {"text": "Mentor on-call engineers", "source_quote": "mentor on-call engineers across the team"}
+  ],
+  "requirements": [
+    {"text": "6+ years SRE/DevOps experience", "category": "required", "source_quote": "6+ years of experience in SRE or DevOps roles"},
+    {"text": "Deep Kubernetes and Terraform experience", "category": "required", "source_quote": "deep hands-on experience with Kubernetes and Terraform"},
+    {"text": "Experience with Go", "category": "preferred", "source_quote": "Experience with Go is a plus"},
+    {"text": "Startup experience", "category": "unclear", "source_quote": "Startup experience is a plus but not required"}
+  ]
+}

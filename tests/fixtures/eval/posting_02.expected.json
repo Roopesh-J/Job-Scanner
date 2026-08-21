@@ -1,0 +1,17 @@
+{
+  "title": "Registered Nurse - Med-Surg Unit",
+  "company": "Lakeside General Hospital",
+  "location": null,
+  "seniority": null,
+  "responsibilities": [
+    {"text": "Administer medications", "source_quote": "administer medications according to physician orders"},
+    {"text": "Monitor patient vitals", "source_quote": "monitor patient vitals throughout each shift"},
+    {"text": "Coordinate care plans with physicians", "source_quote": "coordinate care plans with physicians and specialists"}
+  ],
+  "requirements": [
+    {"text": "Active RN license in the state", "category": "required", "source_quote": "must hold an active RN license in the state"},
+    {"text": "2+ years med-surg experience", "category": "required", "source_quote": "2+ years of med-surg nursing experience"},
+    {"text": "BLS/ACLS certification", "category": "preferred", "source_quote": "BLS/ACLS certification is preferred"},
+    {"text": "Strong communication skills", "category": "unclear", "source_quote": "Strong communication skills are important in this role"}
+  ]
+}

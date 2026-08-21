@@ -1,0 +1,17 @@
+{
+  "title": "Staff Data Analyst",
+  "company": "Fernwood Retail Group",
+  "location": null,
+  "seniority": "Staff",
+  "responsibilities": [
+    {"text": "Build executive dashboards", "source_quote": "build executive dashboards used across the company"},
+    {"text": "Lead quarterly forecasting", "source_quote": "lead quarterly forecasting for merchandising"},
+    {"text": "Own the data quality pipeline", "source_quote": "own the data quality pipeline feeding our reporting tools"}
+  ],
+  "requirements": [
+    {"text": "5+ years analytics/BI experience", "category": "required", "source_quote": "5+ years of experience in analytics or business intelligence"},
+    {"text": "Advanced SQL", "category": "required", "source_quote": "advanced SQL skills"},
+    {"text": "Looker or Tableau experience", "category": "preferred", "source_quote": "Experience with Looker or Tableau is preferred"},
+    {"text": "Comfortable presenting to leadership", "category": "unclear", "source_quote": "comfortable presenting to leadership"}
+  ]
+}
