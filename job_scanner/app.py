@@ -14,6 +14,7 @@ from job_scanner.llm_client import LLMClient
 from job_scanner.models import Category, InsightKind, Verdict
 from job_scanner.patterns import find_gap_patterns
 from job_scanner.ui_helpers import (
+    BRAND_LINKS_HTML,
     CITATION_SCROLL_JS,
     GLOBAL_CSS,
     HERO_HTML,
@@ -317,8 +318,8 @@ def render_results_stage() -> None:
         top_bar_col, back_col = st.columns([5, 1])
         with top_bar_col:
             st.markdown(
-                '<div class="brand"><span class="wordmark">JobScan</span>'
-                '<span class="credit">Made by RoopeshJ</span></div>',
+                f'<div class="brand"><span class="wordmark">JobScan</span>'
+                f'<span class="credit">Made by RoopeshJ</span>{BRAND_LINKS_HTML}</div>',
                 unsafe_allow_html=True,
             )
         with back_col:
