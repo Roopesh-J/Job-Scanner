@@ -118,3 +118,96 @@ def test_run_analysis_counts_budget_even_when_a_posting_fails():
     finally:
         usage_guard._state["date"] = None
         usage_guard._state["count"] = 0
+
+
+def _fake_extraction_and_analysis(title: str):
+    from job_scanner.analyzer import AnalysisResult
+    from job_scanner.extractor import ExtractionResult
+    from job_scanner.models import Category, Posting, Requirement, Responsibility, Verdict
+
+    posting = Posting(
+        title=title,
+        company="Acme",
+        responsibilities=[Responsibility(id="resp-1", text="Own the API", source_quote="own the API")],
+        requirements=[Requirement(id="req-1", text="Kubernetes", category=Category.REQUIRED, source_quote="K8s")],
+    )
+    extraction = ExtractionResult(posting=posting, dropped_ids=[])
+    analysis = AnalysisResult(
+        summary="summary",
+        verdict=Verdict.STRONG_MATCH,
+        insights=[],
+        dropped_count=0,
+        search_actions=[],
+    )
+    return extraction, analysis
+
+
+def test_run_analysis_populates_gap_patterns_on_success():
+    usage_guard._state["date"] = None
+    usage_guard._state["count"] = 0
+
+    from job_scanner.models import GapPattern, GapPatternItem
+
+    fake_client = MagicMock()
+    fake_pattern = GapPattern(label="Kubernetes", items=[GapPatternItem(posting_number=1, insight_id="insight-1")])
+
+    extraction_a, analysis_a = _fake_extraction_and_analysis("Posting A")
+    extraction_b, analysis_b = _fake_extraction_and_analysis("Posting B")
+
+    try:
+        with patch("job_scanner.app.st") as mock_st, patch(
+            "job_scanner.app.LLMClient", return_value=fake_client
+        ), patch(
+            "job_scanner.app.extract_posting", side_effect=[extraction_a, extraction_b]
+        ), patch(
+            "job_scanner.app.analyze_fit", side_effect=[analysis_a, analysis_b]
+        ), patch(
+            "job_scanner.app.find_gap_patterns", return_value=[fake_pattern]
+        ) as mock_find_gap_patterns:
+            mock_st.session_state = MagicMock()
+            mock_st.spinner.return_value.__enter__ = MagicMock()
+            mock_st.spinner.return_value.__exit__ = MagicMock(return_value=False)
+
+            from job_scanner.app import run_analysis
+
+            run_analysis("some background", [(1, "posting text A"), (2, "posting text B")])
+
+            assert mock_st.session_state.gap_patterns == [fake_pattern]
+            assert len(mock_st.session_state.results) == 2
+            mock_find_gap_patterns.assert_called_once()
+    finally:
+        usage_guard._state["date"] = None
+        usage_guard._state["count"] = 0
+
+
+def test_run_analysis_isolates_gap_pattern_failure_from_results():
+    usage_guard._state["date"] = None
+    usage_guard._state["count"] = 0
+
+    fake_client = MagicMock()
+    extraction_a, analysis_a = _fake_extraction_and_analysis("Posting A")
+    extraction_b, analysis_b = _fake_extraction_and_analysis("Posting B")
+
+    try:
+        with patch("job_scanner.app.st") as mock_st, patch(
+            "job_scanner.app.LLMClient", return_value=fake_client
+        ), patch(
+            "job_scanner.app.extract_posting", side_effect=[extraction_a, extraction_b]
+        ), patch(
+            "job_scanner.app.analyze_fit", side_effect=[analysis_a, analysis_b]
+        ), patch(
+            "job_scanner.app.find_gap_patterns", side_effect=RuntimeError("boom")
+        ):
+            mock_st.session_state = MagicMock()
+            mock_st.spinner.return_value.__enter__ = MagicMock()
+            mock_st.spinner.return_value.__exit__ = MagicMock(return_value=False)
+
+            from job_scanner.app import run_analysis
+
+            run_analysis("some background", [(1, "posting text A"), (2, "posting text B")])
+
+            assert mock_st.session_state.gap_patterns == []
+            assert len(mock_st.session_state.results) == 2
+    finally:
+        usage_guard._state["date"] = None
+        usage_guard._state["count"] = 0

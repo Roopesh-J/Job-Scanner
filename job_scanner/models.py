@@ -61,3 +61,13 @@ class SearchResultItem(BaseModel):
 class SearchAction(BaseModel):
     query: str
     results: list[SearchResultItem]
+
+
+class GapPatternItem(BaseModel):
+    posting_number: int
+    insight_id: str
+
+
+class GapPattern(BaseModel):
+    label: str
+    items: list[GapPatternItem]

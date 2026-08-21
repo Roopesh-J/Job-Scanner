@@ -11,6 +11,7 @@ def _safe_id(raw_id: str) -> str:
 
 STRENGTH_COLOR = "#57B98C"
 GAP_COLOR = "#D97757"
+GAP_DEEP_COLOR = "#A35941"
 VERIFIED_COLOR = "#6C9CE8"
 STRETCH_COLOR = "#E0B23C"
 
@@ -194,6 +195,7 @@ GLOBAL_CSS = f"""
     --verified: {VERIFIED_COLOR};
     --strength: {STRENGTH_COLOR};
     --gap: {GAP_COLOR};
+    --gap-deep: {GAP_DEEP_COLOR};
     --stretch: {STRETCH_COLOR};
     --focus: {VERIFIED_COLOR};
 }}
@@ -280,15 +282,49 @@ div[class*="st-key-back_btn"] button:hover {{ background: var(--verified); color
 .stTextArea textarea {{ background: var(--panel); color: var(--ink); border: 1px solid var(--line); font-size: 1.05rem; padding: 0.9rem 1rem; line-height: 1.55; }}
 .stTextArea textarea:focus {{ border-color: var(--verified); }}
 
-.results-intro {{ padding: 0.5rem 0 1.75rem; max-width: 62ch; }}
-.results-intro h2 {{ font-size: clamp(1.9rem, 3.2vw, 2.5rem); color: var(--ink); margin: 0.5rem 0 1rem; line-height: 1.12; }}
-.stat-row {{ display: flex; gap: 2.25rem; margin-top: 1.5rem; }}
+.results-intro {{ padding: 0.5rem 0 1.75rem; }}
+.results-intro h2 {{ font-size: clamp(1.9rem, 3.2vw, 2.5rem); color: var(--ink); margin: 0.5rem 0 1rem;
+    line-height: 1.12; max-width: 62ch; }}
+.stat-row {{ display: flex; flex-wrap: wrap; gap: 1.75rem 2.25rem; margin-top: 1.5rem; }}
 .stat-tile .num {{ font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 1.85rem; font-variant-numeric: tabular-nums; line-height: 1; }}
 .stat-tile.strong .num {{ color: var(--strength); }}
 .stat-tile.stretch .num {{ color: var(--stretch); }}
 .stat-tile.weak .num {{ color: var(--gap); }}
+.stat-tile.gaps .num {{ color: var(--gap-deep); }}
 .stat-tile .cap {{ display: block; margin-top: 0.35rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
     letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); }}
+
+.recurring-gaps {{ padding: 0.5rem 0; margin-bottom: 0.5rem; }}
+.recurring-gaps-heading {{ font-size: 2.3rem; color: var(--ink); margin: 0 0 0.5rem; }}
+.recurring-gaps-blurb {{ color: var(--ink-soft); font-size: 1.05rem; margin: 0 0 1.5rem; max-width: 56ch; }}
+
+.gap-pattern-row {{ padding: 0.9rem 0; }}
+.gap-pattern-row:first-of-type {{ padding-top: 0; }}
+.gap-pattern-row summary {{ cursor: pointer; list-style: none; }}
+.gap-pattern-row summary::-webkit-details-marker {{ display: none; }}
+
+.gap-pattern-heading {{ display: flex; align-items: baseline; gap: 0.65rem; flex-wrap: wrap; }}
+.gap-pattern-heading::before {{
+    content: "▸"; font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; color: var(--ink-faint);
+    display: inline-block; transition: transform 0.15s ease, color 0.15s ease;
+}}
+.gap-pattern-row[open] .gap-pattern-heading::before {{ transform: rotate(90deg); }}
+.gap-pattern-row:hover .gap-pattern-heading::before {{ color: var(--ink); }}
+.gap-pattern-label {{ font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 1.25rem; color: var(--ink); }}
+.gap-pattern-count {{ font-style: italic; color: var(--ink-faint); font-size: 0.92rem; }}
+
+.gap-detail-body {{ margin-top: 1rem; padding-left: 1.1rem; border-left: 1px solid var(--line); }}
+
+.gap-posting-name {{ font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 1rem; color: var(--ink);
+    margin: 0 0 0.35rem; }}
+.gap-posting-name:not(:first-child) {{ margin-top: 1.1rem; }}
+.gap-posting-name .company {{ font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 0.8rem;
+    color: var(--ink-faint); margin-left: 0.6rem; }}
+.gap-quote {{ font-size: 0.98rem; color: var(--ink-soft); font-style: italic; line-height: 1.55; margin: 0; }}
+.gap-quote.muted {{ font-style: normal; color: var(--ink-faint); }}
+
+.select-prompt {{ border: 1px dashed var(--line); color: var(--ink-faint); font-size: 1.05rem;
+    text-align: center; padding: 2.5rem 1rem; margin-bottom: 1.5rem; }}
 
 div[class*="st-key-posting_tabs"] {{ margin-bottom: 0.5rem; }}
 div[class*="st-key-posting_tabs"] div[data-testid="stHorizontalBlock"] {{

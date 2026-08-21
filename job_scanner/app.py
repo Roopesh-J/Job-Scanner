@@ -12,6 +12,7 @@ from job_scanner.analyzer import analyze_fit
 from job_scanner.extractor import extract_posting, is_url
 from job_scanner.llm_client import LLMClient
 from job_scanner.models import Category, InsightKind, Verdict
+from job_scanner.patterns import find_gap_patterns
 from job_scanner.ui_helpers import (
     CITATION_SCROLL_JS,
     GLOBAL_CSS,
@@ -43,8 +44,10 @@ if "results" not in st.session_state:
     st.session_state.results = []
 if "errors" not in st.session_state:
     st.session_state.errors = []
+if "gap_patterns" not in st.session_state:
+    st.session_state.gap_patterns = []
 if "active_tab" not in st.session_state:
-    st.session_state.active_tab = 0
+    st.session_state.active_tab = None
 if "analyzing" not in st.session_state:
     st.session_state.analyzing = False
 if "acknowledged" not in st.session_state:
@@ -66,10 +69,11 @@ def render_input_stage() -> None:
     if os.environ.get("JOBSCAN_DEV_DATA") == "1" and st.button("⚡ Load sample results (dev)", key="dev_load_sample"):
         from job_scanner.dev_data import sample_results
 
-        results, errors = sample_results()
+        results, errors, gap_patterns = sample_results()
         st.session_state.results = results
         st.session_state.errors = errors
-        st.session_state.active_tab = 0
+        st.session_state.gap_patterns = gap_patterns
+        st.session_state.active_tab = 0 if len(results) == 1 else None
         st.session_state.stage = "results"
         st.rerun()
 
@@ -225,12 +229,73 @@ def run_analysis(candidate_text: str, posting_inputs: list[tuple[int, str]]) -> 
 
     results.sort(key=lambda r: ranking_key(r["analysis"].verdict, r["analysis"].insights))
 
+    try:
+        gap_patterns = find_gap_patterns(results, client)
+    except Exception as e:
+        print(f"Gap pattern detection failed: {e!r}", file=sys.stderr)
+        gap_patterns = []
+
     st.session_state.results = results
     st.session_state.errors = errors
-    st.session_state.active_tab = 0
+    st.session_state.gap_patterns = gap_patterns
+    st.session_state.active_tab = 0 if len(results) == 1 else None
     st.session_state.stage = "results"
     st.session_state.analyzing = False
     st.rerun()
+
+
+def _gap_quotes(result: dict, insight_id: str) -> list[str]:
+    insight = next((i for i in result["analysis"].insights if i.id == insight_id), None)
+    if insight is None:
+        return []
+    id_lookup = build_id_lookup(result["extraction"].posting)
+    return [id_lookup[sid] for sid in insight.supporting_ids if sid in id_lookup]
+
+
+def render_gap_patterns(results: list[dict], patterns: list) -> None:
+    if not patterns:
+        return
+
+    pattern_blocks = []
+    for pattern in patterns:
+        insight_by_posting = {item.posting_number: item.insight_id for item in pattern.items}
+        posting_numbers = sorted(insight_by_posting)
+        count_label = f"shows up in {len(posting_numbers)} of {len(results)} postings"
+
+        detail_blocks = []
+        for posting_number in posting_numbers:
+            result = results[posting_number - 1]
+            posting = result["extraction"].posting
+            quotes = _gap_quotes(result, insight_by_posting[posting_number])
+            quote_html = "".join(f'<div class="gap-quote">“{html.escape(q)}”</div>' for q in quotes) or (
+                '<div class="gap-quote muted">No exact line found.</div>'
+            )
+            detail_blocks.append(
+                f'<div class="gap-posting-name">{html.escape(posting.title)}'
+                f'<span class="company">{html.escape(posting.company)}</span></div>'
+                f"{quote_html}"
+            )
+
+        pattern_blocks.append(
+            f'<details class="gap-pattern-row">'
+            f'<summary class="gap-pattern-heading">'
+            f'<span class="gap-pattern-label">{html.escape(pattern.label)}</span>'
+            f'<span class="gap-pattern-count">— {count_label}</span>'
+            f"</summary>"
+            f'<div class="gap-detail-body">{"".join(detail_blocks)}</div>'
+            f"</details>"
+        )
+
+    st.markdown(
+        f"""
+        <div class="recurring-gaps">
+          <h2 class="recurring-gaps-heading">Recurring gaps</h2>
+          <p class="recurring-gaps-blurb">The gaps that keep repeating are what to learn next.</p>
+          {"".join(pattern_blocks)}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_results_stage() -> None:
@@ -260,6 +325,7 @@ def render_results_stage() -> None:
     strong_count = sum(1 for r in results if r["analysis"].verdict == Verdict.STRONG_MATCH)
     stretch_count = sum(1 for r in results if r["analysis"].verdict == Verdict.STRETCH)
     weak_count = sum(1 for r in results if r["analysis"].verdict == Verdict.WEAK_FIT)
+    gap_pattern_count = len(st.session_state.gap_patterns)
 
     st.markdown(
         f"""
@@ -270,29 +336,43 @@ def render_results_stage() -> None:
             <div class="stat-tile stretch"><span class="num">{stretch_count}</span><span class="cap">Stretches</span></div>
             <div class="stat-tile weak"><span class="num">{weak_count}</span><span class="cap">Weak fits</span></div>
             <div class="stat-tile"><span class="num">{len(results)}</span><span class="cap">Postings analyzed</span></div>
+            <div class="stat-tile gaps"><span class="num">{gap_pattern_count}</span><span class="cap">Recurring gaps</span></div>
           </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    with st.container(key="posting_tabs"):
-        tab_cols = st.columns(len(results), gap="small")
-        for i, (col, r) in enumerate(zip(tab_cols, results)):
-            posting = r["extraction"].posting
-            verdict = r["analysis"].verdict
-            is_active = i == st.session_state.active_tab
-            label = build_tab_label(posting)
-            key = f"tab_{verdict.value}_{i}"
-            with col:
-                if st.button(label, key=key, type="primary" if is_active else "secondary"):
-                    st.session_state.active_tab = i
-                    st.rerun()
+    if st.session_state.gap_patterns:
+        st.markdown('<hr class="divider-rule">', unsafe_allow_html=True)
+        render_gap_patterns(results, st.session_state.gap_patterns)
+        st.markdown('<hr class="divider-rule">', unsafe_allow_html=True)
+
+    if len(results) > 1:
+        with st.container(key="posting_tabs"):
+            tab_cols = st.columns(len(results), gap="small")
+            for i, (col, r) in enumerate(zip(tab_cols, results)):
+                posting = r["extraction"].posting
+                verdict = r["analysis"].verdict
+                is_active = i == st.session_state.active_tab
+                label = build_tab_label(posting)
+                key = f"tab_{verdict.value}_{i}"
+                with col:
+                    if st.button(label, key=key, type="primary" if is_active else "secondary"):
+                        st.session_state.active_tab = i
+                        st.rerun()
 
     st.markdown('<hr class="divider-rule ribbon-divider">', unsafe_allow_html=True)
 
-    active = results[st.session_state.active_tab]
-    render_posting_detail(active)
+    if st.session_state.active_tab is None:
+        st.markdown(
+            '<div class="select-prompt">Pick a posting above to see its strengths, gaps, '
+            "and the exact lines they’re drawn from.</div>",
+            unsafe_allow_html=True,
+        )
+    else:
+        active = results[st.session_state.active_tab]
+        render_posting_detail(active)
 
 
 def render_posting_detail(result: dict) -> None:
