@@ -1,3 +1,5 @@
+import pytest
+
 from job_scanner.eval.matching import MatchResult
 from job_scanner.eval.metrics import (
     AggregateEvalResult,
@@ -92,6 +94,43 @@ def test_grounding_rate_drops_for_each_ungrounded_quote():
 def test_grounding_rate_is_one_for_a_posting_with_no_items():
     posting = _posting(requirements=[], responsibilities=[])
     assert grounding_rate(posting, "any text") == 1.0
+
+
+def test_grounding_rate_accounts_for_items_dropped_before_scoring():
+    posting = _posting(
+        requirements=[
+            Requirement(id="req-1", text="Python", category=Category.REQUIRED, source_quote="5+ years of Python"),
+        ],
+        responsibilities=[],
+    )
+    posting_text = "Requires 5+ years of Python."
+    # 1 kept, grounded item + 2 items dropped before scoring (were ungrounded) = 3 total, 2 violations
+    assert grounding_rate(posting, posting_text, dropped_count=2) == pytest.approx(1 / 3)
+
+
+def test_evaluate_posting_grounding_rate_reflects_dropped_count():
+    posting_text = "Requires 5+ years of Python experience."
+    predicted = _posting(
+        requirements=[
+            Requirement(
+                id="req-1", text="5+ years of Python experience",
+                category=Category.REQUIRED, source_quote="5+ years of Python experience",
+            ),
+        ],
+        responsibilities=[],
+    )
+    reference = {
+        "requirements": [
+            {
+                "text": "5+ years of Python experience",
+                "category": "required",
+                "source_quote": "5+ years of Python experience",
+            },
+        ],
+        "responsibilities": [],
+    }
+    result = evaluate_posting(predicted, reference, posting_text, dropped_count=1)
+    assert result.grounding_rate_score == pytest.approx(0.5)
 
 
 def test_evaluate_posting_combines_all_metrics():

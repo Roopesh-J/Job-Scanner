@@ -44,11 +44,11 @@ def category_accuracy(
     return accuracy, confusion
 
 
-def grounding_rate(posting: Posting, posting_text: str) -> float:
-    total_items = len(posting.requirements) + len(posting.responsibilities)
+def grounding_rate(posting: Posting, posting_text: str, dropped_count: int = 0) -> float:
+    total_items = len(posting.requirements) + len(posting.responsibilities) + dropped_count
     if total_items == 0:
         return 1.0
-    violations = len(find_ungrounded_quotes(posting, posting_text))
+    violations = len(find_ungrounded_quotes(posting, posting_text)) + dropped_count
     return 1 - (violations / total_items)
 
 
@@ -61,7 +61,9 @@ class PostingEvalResult:
     grounding_rate_score: float
 
 
-def evaluate_posting(predicted: Posting, reference: dict, posting_text: str) -> PostingEvalResult:
+def evaluate_posting(
+    predicted: Posting, reference: dict, posting_text: str, dropped_count: int = 0
+) -> PostingEvalResult:
     predicted_req_texts = [r.text for r in predicted.requirements]
     reference_req_texts = [r["text"] for r in reference["requirements"]]
     req_match = match_items(predicted_req_texts, reference_req_texts)
@@ -78,7 +80,7 @@ def evaluate_posting(predicted: Posting, reference: dict, posting_text: str) -> 
     resp_match = match_items(predicted_resp_texts, reference_resp_texts)
     responsibility_pr = precision_recall(resp_match)
 
-    grounding_rate_score = grounding_rate(predicted, posting_text)
+    grounding_rate_score = grounding_rate(predicted, posting_text, dropped_count)
 
     return PostingEvalResult(
         requirement_pr=requirement_pr,

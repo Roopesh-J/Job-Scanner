@@ -31,7 +31,9 @@ def main() -> None:
     results = []
     for name, posting_text, reference in _load_fixtures():
         extraction = extract_posting(posting_text, client)
-        result = evaluate_posting(extraction.posting, reference, posting_text)
+        result = evaluate_posting(
+            extraction.posting, reference, posting_text, dropped_count=len(extraction.dropped_ids)
+        )
         results.append(result)
 
         print(f"\n{name}")
