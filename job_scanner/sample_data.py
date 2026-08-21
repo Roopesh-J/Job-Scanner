@@ -265,24 +265,27 @@ def sample_results() -> tuple[list[dict], list[tuple[int, str]], list[GapPattern
                 source_quote="4+ years of DevOps or SRE experience",
             ),
             Requirement(
-                id="req-2", text="Advanced Kubernetes operations at scale", category=Category.REQUIRED,
-                source_quote="advanced Kubernetes operations at scale",
+                id="req-2", text="Experience running production Kubernetes clusters, including capacity "
+                "planning and upgrades", category=Category.REQUIRED,
+                source_quote="run production Kubernetes clusters and knows their way around capacity "
+                "planning and upgrades",
             ),
             Requirement(
-                id="req-3", text="Terraform and infrastructure-as-code experience", category=Category.REQUIRED,
-                source_quote="hands-on Terraform and infrastructure-as-code experience",
+                id="req-3", text="Comfortable writing and maintaining Terraform modules", category=Category.REQUIRED,
+                source_quote="comfortable writing and maintaining Terraform modules for our infrastructure",
             ),
             Requirement(
-                id="req-4", text="Comfortable writing Go for internal tooling", category=Category.PREFERRED,
-                source_quote="Comfortable writing Go for internal tooling is a plus",
+                id="req-4", text="Proficiency in Go for internal tooling", category=Category.PREFERRED,
+                source_quote="Proficiency in Go for internal tooling is a plus",
             ),
         ],
     )
     posting_text_ridgeline = (
         "Ridgeline Cloud needs a DevOps Engineer to own CI/CD pipelines across three product teams. You'll "
-        "build self-service infrastructure tooling for other engineers. We require 4+ years of DevOps or "
-        "SRE experience, advanced Kubernetes operations at scale, and hands-on Terraform and "
-        "infrastructure-as-code experience. Comfortable writing Go for internal tooling is a plus."
+        "build self-service infrastructure tooling for other engineers. We need someone with 4+ years of "
+        "DevOps or SRE experience who has run production Kubernetes clusters and knows their way around "
+        "capacity planning and upgrades. You should be comfortable writing and maintaining Terraform "
+        "modules for our infrastructure. Proficiency in Go for internal tooling is a plus."
     )
     analysis_ridgeline = AnalysisResult(
         summary="A stretch — solid DevOps fundamentals, but the Kubernetes, Terraform, and Go experience "
@@ -298,11 +301,11 @@ def sample_results() -> tuple[list[dict], list[tuple[int, str]], list[GapPattern
                 kind=InsightKind.STRENGTH, supporting_ids=["resp-2"],
             ),
             Insight(
-                id="insight-3", text="No mention of advanced Kubernetes operations at scale.",
+                id="insight-3", text="No mention of running production Kubernetes clusters or capacity planning.",
                 kind=InsightKind.GAP, supporting_ids=["req-2"],
             ),
             Insight(
-                id="insight-4", text="No hands-on Terraform or infrastructure-as-code experience listed.",
+                id="insight-4", text="No experience writing or maintaining Terraform modules listed.",
                 kind=InsightKind.GAP, supporting_ids=["req-3"],
             ),
             Insight(
@@ -337,25 +340,27 @@ def sample_results() -> tuple[list[dict], list[tuple[int, str]], list[GapPattern
                 source_quote="8+ years of SRE or infrastructure experience at scale",
             ),
             Requirement(
-                id="req-2", text="Advanced Kubernetes operations at scale", category=Category.REQUIRED,
-                source_quote="advanced Kubernetes operations at scale",
+                id="req-2", text="Deep Kubernetes expertise across large multi-cluster environments",
+                category=Category.REQUIRED,
+                source_quote="deep Kubernetes expertise across large multi-cluster environments",
             ),
             Requirement(
-                id="req-3", text="Terraform and infrastructure-as-code experience", category=Category.REQUIRED,
-                source_quote="hands-on Terraform and infrastructure-as-code experience",
+                id="req-3", text="Strong background in Terraform-based infrastructure automation",
+                category=Category.REQUIRED,
+                source_quote="strong background in Terraform-based infrastructure automation",
             ),
             Requirement(
-                id="req-4", text="Comfortable writing Go for internal tooling", category=Category.PREFERRED,
-                source_quote="Comfortable writing Go for internal tooling is a plus",
+                id="req-4", text="Solid Go skills for internal reliability tooling", category=Category.PREFERRED,
+                source_quote="Solid Go skills for internal reliability tooling are a plus",
             ),
         ],
     )
     posting_text_ironwood = (
         "Ironwood Labs is looking for a Staff Site Reliability Engineer to own production incident "
         "response. You'll set on-call standards across the org. This role requires 8+ years of SRE or "
-        "infrastructure experience at scale, advanced Kubernetes operations at scale, and hands-on "
-        "Terraform and infrastructure-as-code experience. Comfortable writing Go for internal tooling is "
-        "a plus."
+        "infrastructure experience at scale, including deep Kubernetes expertise across large "
+        "multi-cluster environments. A strong background in Terraform-based infrastructure automation is "
+        "required. Solid Go skills for internal reliability tooling are a plus."
     )
     analysis_ironwood = AnalysisResult(
         summary="Not a fit right now — the seniority bar and infrastructure depth this role wants aren't met.",
@@ -371,15 +376,15 @@ def sample_results() -> tuple[list[dict], list[tuple[int, str]], list[GapPattern
                 kind=InsightKind.GAP, supporting_ids=["req-1"],
             ),
             Insight(
-                id="insight-3", text="No mention of advanced Kubernetes operations at scale.",
+                id="insight-3", text="No mention of Kubernetes experience at multi-cluster scale.",
                 kind=InsightKind.GAP, supporting_ids=["req-2"],
             ),
             Insight(
-                id="insight-4", text="No hands-on Terraform or infrastructure-as-code experience listed.",
+                id="insight-4", text="No Terraform-based infrastructure automation experience listed.",
                 kind=InsightKind.GAP, supporting_ids=["req-3"],
             ),
             Insight(
-                id="insight-5", text="No listed experience writing Go.",
+                id="insight-5", text="No listed Go experience.",
                 kind=InsightKind.GAP, supporting_ids=["req-4"],
             ),
         ],
