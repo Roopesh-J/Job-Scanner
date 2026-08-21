@@ -12,7 +12,11 @@ If you'd rather not paste your own resume in, there's a "See a sample analysis" 
 
 ![The recurring gaps panel, listing three gaps and how many of the five analyzed postings each one shows up in](docs/images/recurring-gaps.png)
 
-This is the feature that's actually hard to get out of a chat window. Paste in five postings at once and JobScan looks across all of them for gaps that keep showing up, not just what's wrong with each one individually. A chat only ever sees one job posting at a time, so it can't tell you that the Kubernetes gap you keep hitting is the thing actually worth fixing before your next ten applications. Each recurring gap expands to show what every affected posting specifically asked for, in that posting's own words, so you can check the pattern is real rather than just take the tool's word for it.
+This is the feature that's actually hard to get out of a chat window. Paste in five postings at once and JobScan looks across all of them for gaps that keep showing up, not just what's wrong with each one individually. A chat only ever sees one job posting at a time, so it can't tell you that the Kubernetes gap you keep hitting is the thing actually worth fixing before your next ten applications.
+
+Click a gap and it expands to show what every affected posting specifically asked for, in that posting's own words, so you can check the pattern is real instead of taking the tool's word for it.
+
+![One gap expanded, showing the exact line each of four postings used to ask for it](docs/images/recurring-gaps-expanded.png)
 
 ## Traceable citations
 
