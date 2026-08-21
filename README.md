@@ -26,10 +26,10 @@ Open any posting and its strengths and gaps sit right next to the text they were
 
 ## How it works
 
-1. **Extraction.** The posting gets broken down into structured facts: title, company, seniority, responsibilities, requirements. Each requirement is tagged required, preferred, or unclear and backed by a verbatim quote.
-2. **Analysis.** Your background gets compared against that structure to produce strengths and gaps, each one citing the specific requirement or responsibility it came from.
-3. **Batch mode.** Analyze up to 5 postings at once, ranked by fit.
-4. **Recurring gaps.** Across that batch, whatever gap keeps showing up gets pulled out and shown first.
+1. **Extraction:** The posting gets broken down into structured facts: title, company, seniority, responsibilities, requirements. Each requirement is tagged required, preferred, or unclear and backed by a verbatim quote.
+2. **Analysis:** Your background gets compared against that structure to produce strengths and gaps, each one citing the specific requirement or responsibility it came from.
+3. **Batch mode:** Analyze up to 5 postings at once, ranked by fit.
+4. **Recurring gaps:** Across that batch, whatever gap keeps showing up gets pulled out and shown first.
 
 ## Using it
 
