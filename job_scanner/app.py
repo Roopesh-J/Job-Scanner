@@ -99,33 +99,41 @@ def render_input_stage() -> None:
             render_acknowledgment_panel()
             return
 
+        # Streamlit prunes a text_area's session_state entry for any run where it isn't
+        # rendered (e.g. while the results stage is showing), so plain key= binding alone
+        # loses the text on the way back. Shadowing each value under its own key and passing
+        # it back in as value= survives that prune.
         st.markdown('<span class="field-label">Your background</span>', unsafe_allow_html=True)
         candidate_text = st.text_area(
             "Your background",
             height=110,
             label_visibility="collapsed",
             key="candidate_text",
+            value=st.session_state.get("candidate_text_value", ""),
             max_chars=usage_guard.MAX_CANDIDATE_CHARS,
-        )
+        ) or ""
+        st.session_state.candidate_text_value = candidate_text
 
         st.markdown('<span class="field-label">Postings</span>', unsafe_allow_html=True)
         posting_inputs_raw = []
         posting_ids = st.session_state.posting_ids
         for display_index, pid in enumerate(list(posting_ids)):
             with st.container(key=f"posting_wrap_{pid}"):
-                posting_inputs_raw.append(
-                    st.text_area(
-                        f"Posting {display_index + 1}",
-                        height=90,
-                        label_visibility="collapsed",
-                        key=f"posting_{pid}",
-                        max_chars=usage_guard.MAX_POSTING_CHARS,
-                    )
-                )
+                posting_text = st.text_area(
+                    f"Posting {display_index + 1}",
+                    height=90,
+                    label_visibility="collapsed",
+                    key=f"posting_{pid}",
+                    value=st.session_state.get(f"posting_{pid}_value", ""),
+                    max_chars=usage_guard.MAX_POSTING_CHARS,
+                ) or ""
+                posting_inputs_raw.append(posting_text)
+                st.session_state[f"posting_{pid}_value"] = posting_text
                 if len(posting_ids) > 1 and st.button(
                     "×", key=f"remove_{pid}", help=f"Remove posting {display_index + 1}"
                 ):
                     posting_ids.remove(pid)
+                    st.session_state.pop(f"posting_{pid}_value", None)
                     st.rerun()
 
         if len(posting_ids) < usage_guard.MAX_POSTINGS_PER_BATCH:
