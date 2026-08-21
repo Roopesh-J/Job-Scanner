@@ -33,6 +33,25 @@ streamlit run job_scanner/app.py
 
 The app has no login/passcode by design — anyone with the URL can use it. To keep API spend bounded, there's a shared, in-process daily cap on postings analyzed (`usage_guard.DAILY_POSTING_LIMIT`), plus per-batch (`MAX_POSTINGS_PER_BATCH`) and per-field character limits. The daily counter lives in memory, so it resets if the process restarts (a redeploy, or Streamlit Community Cloud waking from inactivity) — it's a best-effort budget, not a hard guarantee. Also note that the character limits (`max_chars` on the input widgets) are client-side widget enforcement only, with no server-side re-validation — they stop accidental oversized pastes, not a client that speaks Streamlit's protocol directly.
 
+## Evaluation
+
+`job_scanner/eval/` measures how well Stage 1 (extraction) actually performs, against a hand-labeled
+reference set of 5 postings in `tests/fixtures/eval/`: requirement/responsibility precision and recall,
+category (required/preferred/unclear) accuracy, and grounding rate (the fraction of extracted items whose
+quote is verifiably real). Matching predicted items to reference items uses local sentence embeddings
+(`sentence-transformers`, `all-MiniLM-L6-v2`) rather than exact-string comparison, so a differently-worded
+but equivalent extraction still counts as correct.
+
+Run it with a real `ANTHROPIC_API_KEY` set (this makes real, billed API calls):
+
+```bash
+python -m job_scanner.eval.run_eval
+```
+
+`matching.py` and `metrics.py` have their own fast, free unit tests (`pytest tests/test_eval_matching.py
+tests/test_eval_metrics.py`) using the local embedding model against synthetic examples — no API calls
+involved. `run_eval.py` itself is intentionally not part of the `pytest` suite.
+
 ## Tech stack
 
 Python, the Anthropic API (direct SDK, no agent framework), Pydantic, Streamlit. Tests via `pytest` — run with `pytest -v`.
