@@ -217,6 +217,18 @@ h1, h2, h3, h4, h5 {{ font-family: 'Spectral', Georgia, serif; font-weight: 600;
     text-decoration: none !important; transition: color 0.15s ease; }}
 .brand-link:hover, .brand-link:focus-visible {{ color: var(--verified) !important; }}
 .brand-link svg {{ display: block; }}
+
+div[class*="st-key-input_topbar"] {{ margin-bottom: -35px; }}
+div[class*="st-key-feedback_btn_input"],
+div[class*="st-key-feedback_btn_results"] {{ display: flex; justify-content: flex-end; width: 100%; }}
+div[class*="st-key-feedback_btn_results"] {{ margin-top: 0.6rem; }}
+div[class*="st-key-feedback_btn_input"] a,
+div[class*="st-key-feedback_btn_results"] a {{
+    font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 0.82rem; letter-spacing: 0.02em;
+    background: none; color: var(--ink-faint) !important; border: 1px solid var(--line); padding: 0.5rem 1rem; margin-left: auto;
+}}
+div[class*="st-key-feedback_btn_input"] a:hover,
+div[class*="st-key-feedback_btn_results"] a:hover {{ border-color: var(--verified); color: var(--verified) !important; }}
 div[class*="st-key-results_topbar"] {{ margin-bottom: -35px; }}
 .field-label {{ font-family: 'Public Sans', sans-serif; font-weight: 600; font-size: 1.15rem; color: var(--ink); margin-bottom: 0.5rem; }}
 
@@ -435,6 +447,8 @@ div[data-testid="stExpander"] summary span {{ font-size: 1rem; }}
 </style>
 """
 
+FEEDBACK_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdXpyXE6Hwrb1yfJDXLqZOSAgsd2GSsJ2TsGfYgjN6J3MMnvg/viewform"
+
 BRAND_LINKS_HTML = (
     '<a class="brand-link" href="https://github.com/Roopesh-J/Job-Scanner" target="_blank" '
     'rel="noopener noreferrer" aria-label="GitHub repository">'
@@ -454,14 +468,14 @@ BRAND_LINKS_HTML = (
     'v3.9z"/></svg></a>'
 )
 
+BRAND_ROW_HTML = (
+    '<div class="brand"><span class="wordmark">JobScan</span>'
+    f'<span class="credit">Made by RoopeshJ</span>{BRAND_LINKS_HTML}</div>'
+)
+
 HERO_HTML = f"""
 <div class="hero">
   <div class="hero-copy">
-    <div class="brand">
-      <span class="wordmark">JobScan</span>
-      <span class="credit">Made by RoopeshJ</span>
-      {BRAND_LINKS_HTML}
-    </div>
     <h1>See exactly where you stand.</h1>
     <p>Paste a posting and your background. Every strength and gap comes back tied to the line it's drawn from,
     so nothing's guessed. Do this for every posting you actually want, and the gaps that keep repeating are what

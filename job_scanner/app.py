@@ -14,8 +14,9 @@ from job_scanner.llm_client import LLMClient
 from job_scanner.models import Category, InsightKind, Verdict
 from job_scanner.patterns import find_gap_patterns
 from job_scanner.ui_helpers import (
-    BRAND_LINKS_HTML,
+    BRAND_ROW_HTML,
     CITATION_SCROLL_JS,
+    FEEDBACK_FORM_URL,
     GLOBAL_CSS,
     HERO_HTML,
     HOW_TO_HTML,
@@ -77,6 +78,13 @@ def render_input_stage() -> None:
         st.session_state.active_tab = 0 if len(results) == 1 else None
         st.session_state.stage = "results"
         st.rerun()
+
+    with st.container(key="input_topbar"):
+        brand_col, feedback_col = st.columns([5, 1])
+        with brand_col:
+            st.markdown(BRAND_ROW_HTML, unsafe_allow_html=True)
+        with feedback_col:
+            st.link_button("Feedback", FEEDBACK_FORM_URL, key="feedback_btn_input")
 
     st.markdown(HERO_HTML, unsafe_allow_html=True)
     st.markdown('<hr class="divider-rule">', unsafe_allow_html=True)
@@ -317,16 +325,13 @@ def render_results_stage() -> None:
     with st.container(key="results_topbar"):
         top_bar_col, back_col = st.columns([5, 1])
         with top_bar_col:
-            st.markdown(
-                f'<div class="brand"><span class="wordmark">JobScan</span>'
-                f'<span class="credit">Made by RoopeshJ</span>{BRAND_LINKS_HTML}</div>',
-                unsafe_allow_html=True,
-            )
+            st.markdown(BRAND_ROW_HTML, unsafe_allow_html=True)
         with back_col:
             if st.button("← New analysis", key="back_btn"):
                 st.session_state.stage = "input"
                 st.session_state.analyzing = False
                 st.rerun()
+            st.link_button("Feedback", FEEDBACK_FORM_URL, key="feedback_btn_results")
 
     for posting_number, error in sorted(st.session_state.errors):
         st.error(f"Posting {posting_number}: {error}")
