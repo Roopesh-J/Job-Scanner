@@ -11,7 +11,7 @@ def _safe_id(raw_id: str) -> str:
 
 STRENGTH_COLOR = "#57B98C"
 GAP_COLOR = "#D97757"
-GAP_DEEP_COLOR = "#A35941"
+GAP_DEEP_COLOR = "#E5484D"
 VERIFIED_COLOR = "#6C9CE8"
 STRETCH_COLOR = "#E0B23C"
 
@@ -259,6 +259,13 @@ div[class*="st-key-analyze_btn"] button:hover:not(:disabled) {{ background: var(
 div[class*="st-key-analyze_btn"] button:disabled {{
     background: var(--panel); color: var(--ink-faint); border: 1px solid var(--line); cursor: not-allowed;
 }}
+div[class*="st-key-sample_btn"] {{ margin-top: 0.6rem; }}
+div[class*="st-key-sample_btn"] button {{
+    background: none; border: none; color: var(--verified); font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem; padding: 0.3rem 0; text-decoration: underline;
+    text-decoration-color: rgba(108, 156, 232, 0.35); text-underline-offset: 3px;
+}}
+div[class*="st-key-sample_btn"] button:hover {{ color: var(--ink); text-decoration-color: var(--ink); }}
 div[class*="st-key-add_posting"] button {{
     font-family: 'IBM Plex Mono', monospace; font-size: 0.88rem;
     background: none; color: var(--verified); border: 1px dashed var(--line); width: 100%; text-align: left; padding: 0.55rem 0.9rem;

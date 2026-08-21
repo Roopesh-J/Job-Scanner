@@ -141,6 +141,18 @@ def render_input_stage() -> None:
         analyze_clicked = st.button(
             "Analyze", key="analyze_btn", disabled=not can_analyze or st.session_state.analyzing
         )
+
+        if st.button("See a sample analysis", key="sample_btn"):
+            from job_scanner.sample_data import sample_results as load_sample_results
+
+            results, errors, gap_patterns = load_sample_results()
+            st.session_state.results = results
+            st.session_state.errors = errors
+            st.session_state.gap_patterns = gap_patterns
+            st.session_state.active_tab = 0 if len(results) == 1 else None
+            st.session_state.stage = "results"
+            st.rerun()
+
         if analyze_clicked:
             st.session_state.analyzing = True
             st.rerun()
