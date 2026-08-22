@@ -1,5 +1,8 @@
 # JobScan
 
+[![Tests](https://github.com/Roopesh-J/Job-Scanner/actions/workflows/test.yml/badge.svg)](https://github.com/Roopesh-J/Job-Scanner/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 **[Try it live →](https://job-scanner-roopj.streamlit.app/)**
 
 ![JobScan's landing page, showing a strength and a gap each linked to the exact line in a posting they came from](docs/images/hero.png)
@@ -86,3 +89,7 @@ A deployed copy has no login by design, so anyone with the URL can use it. There
 ## Tech stack
 
 Python, the Anthropic API directly (no agent framework), Pydantic, Streamlit. Tests run with `pytest`.
+
+## License
+
+[MIT](LICENSE)
