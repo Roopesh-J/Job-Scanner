@@ -1,3 +1,5 @@
+<div align="center">
+
 # JobScan
 
 [![Tests](https://github.com/Roopesh-J/Job-Scanner/actions/workflows/test.yml/badge.svg)](https://github.com/Roopesh-J/Job-Scanner/actions/workflows/test.yml)
@@ -6,6 +8,8 @@
 **[Try it live →](https://job-scanner-roopj.streamlit.app/)**
 
 ![JobScan's landing page, showing a strength and a gap each linked to the exact line in a posting they came from](docs/images/hero.png)
+
+</div>
 
 Paste a job posting and your background, and JobScan tells you where you actually stand: what the posting requires versus what's just preferred, and your real strengths and gaps against it. Every claim is tied back to the exact line in the posting it came from, so there's nothing to take on faith.
 
